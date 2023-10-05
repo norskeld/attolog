@@ -3,7 +3,12 @@ root = true
 [*]
 indent_style = space
 indent_size = 2
+max_line_length = 100
 end_of_line = lf
 charset = utf-8
 trim_trailing_whitespace = true
 insert_final_newline = true
+
+[*.fs]
+fsharp_max_dot_get_expression_width = 40
+fsharp_multiline_bracket_style = stroustrup
