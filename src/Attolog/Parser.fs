@@ -15,7 +15,7 @@ let run parser input =
   let (Parser parser) = parser
   parser input
 
-/// Parses a specified character `ch`.
+/// Matches a specified character `ch`.
 let pchar ch =
   let parser input =
     if String.IsNullOrEmpty(input) then
@@ -74,3 +74,54 @@ let choice parsers = List.reduce orElse parsers
 
 /// Chooses any of a list of characters.
 let anyOf chars = chars |> List.map pchar |> choice
+
+/// Maps a `parser`'s result with `f`.
+let mapP f parser =
+  let parser input =
+    let res = run parser input
+
+    match res with
+    | Success(value, remaining) ->
+      let newValue = f value
+      Success(newValue, remaining)
+    | Failure message -> Failure message
+
+  Parser parser
+
+/// Infix version of `map`.
+let (<!>) = mapP
+
+/// Infix version of `map` to be used in pipelines.
+let (|>>) x f = mapP f x
+
+/// Lifts a value.
+let returnP x =
+  let parser input = Success(x, input)
+  Parser parser
+
+/// Lifts a function.
+let applyP fP xP =
+  (fP .>>. xP) |> mapP (fun (f, x) -> f x)
+
+/// Infix version of `applyP`.
+let (<*>) = applyP
+
+/// Lifts a binary function.
+let lift2 f xP yP = returnP f <*> xP <*> yP
+
+/// Applies parsers in sequence.
+let rec sequence parsers =
+  let cons head tail = head :: tail
+  let consP = lift2 cons
+
+  match parsers with
+  | [] -> returnP []
+  | head :: tail -> consP head (sequence tail)
+
+/// Matches a specified string.
+let pstring str =
+  str
+  |> List.ofSeq
+  |> List.map pchar
+  |> sequence
+  |> mapP (fun chars -> chars |> List.toArray |> String)
