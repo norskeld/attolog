@@ -125,3 +125,34 @@ let pstring str =
   |> List.map pchar
   |> sequence
   |> mapP (fun chars -> chars |> List.toArray |> String)
+
+/// Helper that applies a parser `p` zero or more times collecting values in case of success.
+let rec zeroOrMore p input =
+  let result = run p input
+
+  match result with
+  | Success(firstValue, remainingInput) ->
+    let (subsequentValues, remainingInput') = zeroOrMore p remainingInput
+    let values = firstValue :: subsequentValues
+    (values, remainingInput')
+  | Failure _ -> ([], input)
+
+/// Applies a parser `p` zero or more times.
+let many p =
+  let parser input = Success(zeroOrMore p input)
+  Parser parser
+
+/// Applies a parser `p` one or more times.
+let many1 p =
+  let parser input =
+    let result = run p input
+
+    match result with
+    | Success(value, remainingInput) ->
+      // If first matched, look for zeroOrMore.
+      let (subsequentValues, remainingInput') = zeroOrMore p remainingInput
+      let values = value :: subsequentValues
+      Success(values, remainingInput')
+    | Failure message -> Failure message
+
+  Parser parser
