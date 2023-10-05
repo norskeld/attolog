@@ -52,3 +52,19 @@ let andThen p1 p2 =
 
 /// Infix version of `andThen`.
 let (.>>.) = andThen
+
+/// Chooses between two parsers.
+let orElse p1 p2 =
+  let parser input =
+    let res1 = run p1 input
+
+    match res1 with
+    | Success _ -> res1
+    | Failure _ ->
+      let res2 = run p2 input
+      res2
+
+  Parser parser
+
+/// Infix version of `orElse`.
+let (<|>) = orElse
