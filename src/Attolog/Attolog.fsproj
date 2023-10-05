@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Attolog.fs" />
+    <Compile Include="Syntax.fs" />
   </ItemGroup>
 
 </Project>
