@@ -179,15 +179,7 @@ let pint =
   optional (pchar '-') .>>. digits |>> resultIntoInt
 
 /// Keep only the result of the left side parser.
-let (.>>) p1 p2 =
-  // Produce a pair.
-  p1 .>>. p2
-  // Only keep the first value.
-  |> mapP (fun (a, _) -> a)
+let (.>>) p1 p2 = p1 .>>. p2 |> mapP (fun (a, _) -> a)
 
 /// Keep only the result of the right side parser.
-let (>>.) p1 p2 =
-  // Produce a pair.
-  p1 .>>. p2
-  // Only keep the second value.
-  |> mapP (fun (_, b) -> b)
+let (>>.) p1 p2 = p1 .>>. p2 |> mapP (fun (_, b) -> b)
