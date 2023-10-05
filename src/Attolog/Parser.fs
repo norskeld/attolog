@@ -165,3 +165,10 @@ let pint =
   let digits = many1 digit
 
   digits |> mapP resultIntoInt
+
+/// Matches a parser `p` zero or one time.
+let optional p =
+  let some = p |>> Some
+  let none = returnP None
+
+  some <|> none
