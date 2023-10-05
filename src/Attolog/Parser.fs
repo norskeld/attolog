@@ -68,3 +68,9 @@ let orElse p1 p2 =
 
 /// Infix version of `orElse`.
 let (<|>) = orElse
+
+/// Chooses any of a list of parsers.
+let choice parsers = List.reduce orElse parsers
+
+/// Chooses any of a list of characters.
+let anyOf chars = chars |> List.map pchar |> choice
