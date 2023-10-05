@@ -8,4 +8,4 @@ Minimal [Prolog] interpreter.
 
 <!-- Links. -->
 
-[prolog]: https://en.m.wikipedia.org/wiki/Prolog
+[prolog]: https://en.wikipedia.org/wiki/Prolog
