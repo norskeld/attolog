@@ -31,3 +31,24 @@ let pchar ch =
         Failure message
 
   Parser parser
+
+/// Combines two parsers in sequence.
+let andThen p1 p2 =
+  let parser input =
+    let res1 = run p1 input
+
+    match res1 with
+    | Success(val1, remaining) ->
+      let res2 = run p2 remaining
+
+      match res2 with
+      | Success(val2, remaining) ->
+        let newValue = (val1, val2)
+        Success(newValue, remaining)
+      | Failure message -> Failure message
+    | Failure message -> Failure message
+
+  Parser parser
+
+/// Infix version of `andThen`.
+let (.>>.) = andThen
