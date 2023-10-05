@@ -156,3 +156,12 @@ let many1 p =
     | Failure message -> Failure message
 
   Parser parser
+
+/// Parses an integer.
+let pint =
+  let resultIntoInt digits = digits |> List.toArray |> String |> int
+
+  let digit = anyOf [ '0' .. '9' ]
+  let digits = many1 digit
+
+  digits |> mapP resultIntoInt
