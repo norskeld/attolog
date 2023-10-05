@@ -157,18 +157,23 @@ let many1 p =
 
   Parser parser
 
-/// Parses an integer.
-let pint =
-  let resultIntoInt digits = digits |> List.toArray |> String |> int
-
-  let digit = anyOf [ '0' .. '9' ]
-  let digits = many1 digit
-
-  digits |> mapP resultIntoInt
-
 /// Matches a parser `p` zero or one time.
 let optional p =
   let some = p |>> Some
   let none = returnP None
 
   some <|> none
+
+/// Parses an integer.
+let pint =
+  let resultIntoInt (sign, digits) =
+    let integer = digits |> List.toArray |> String |> int
+
+    match sign with
+    | Some _ -> -integer
+    | None -> integer
+
+  let digit = anyOf [ '0' .. '9' ]
+  let digits = many1 digit
+
+  optional (pchar '-') .>>. digits |>> resultIntoInt
