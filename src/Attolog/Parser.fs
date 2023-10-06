@@ -15,40 +15,46 @@ let run parser input =
   let (Parser parser) = parser
   parser input
 
-/// Matches a specified character `ch`.
-let pchar ch =
+/// Takes a parser-producing function `f` and a parser `p` and passes the output of `p` into `f` to create a new parser.
+let bindP f p =
   let parser input =
-    if String.IsNullOrEmpty(input) then
-      Failure "EOI"
-    else
-      let first = input.[0]
+    let result = run p input
 
-      if first = ch then
-        let remaining = input.[1..]
-        Success(ch, remaining)
-      else
-        let message = sprintf "Expected '%c', but got '%c'" ch first
-        Failure message
-
-  Parser parser
-
-/// Combines two parsers in sequence.
-let andThen p1 p2 =
-  let parser input =
-    let res1 = run p1 input
-
-    match res1 with
-    | Success(val1, remaining) ->
-      let res2 = run p2 remaining
-
-      match res2 with
-      | Success(val2, remaining) ->
-        let newValue = (val1, val2)
-        Success(newValue, remaining)
-      | Failure message -> Failure message
+    match result with
+    | Success(value, remainingInput) ->
+      let p2 = f value
+      run p2 remainingInput
     | Failure message -> Failure message
 
   Parser parser
+
+/// Infix version of `bindP`. Flips parameters.
+let (>>=) p f = bindP f p
+
+/// Lifts a value.
+let returnP x =
+  let parser input = Success(x, input)
+  Parser parser
+
+/// Maps a `parser`'s result with `f`.
+let mapP f = bindP (f >> returnP)
+
+/// Infix version of `map`.
+let (<!>) = mapP
+
+/// Infix version of `map`. Flips parameters.
+let (|>>) x f = mapP f x
+
+/// Lifts a function.
+let applyP fP xP =
+  fP >>= (fun f -> xP >>= (fun x -> returnP (f x)))
+
+/// Infix version of `applyP`.
+let (<*>) = applyP
+
+/// Combines two parsers in sequence.
+let andThen p1 p2 =
+  p1 >>= (fun res1 -> p2 >>= (fun res2 -> returnP (res1, res2)))
 
 /// Infix version of `andThen`.
 let (.>>.) = andThen
@@ -72,39 +78,25 @@ let (<|>) = orElse
 /// Chooses any of a list of parsers.
 let choice parsers = List.reduce orElse parsers
 
+/// Matches a specified character `ch`.
+let pchar ch =
+  let parser input =
+    if String.IsNullOrEmpty(input) then
+      Failure "EOI"
+    else
+      let first = input.[0]
+
+      if first = ch then
+        let remaining = input.[1..]
+        Success(ch, remaining)
+      else
+        let message = sprintf "Expected '%c', but got '%c'" ch first
+        Failure message
+
+  Parser parser
+
 /// Chooses any of a list of characters.
 let anyOf chars = chars |> List.map pchar |> choice
-
-/// Maps a `parser`'s result with `f`.
-let mapP f parser =
-  let parser input =
-    let res = run parser input
-
-    match res with
-    | Success(value, remaining) ->
-      let newValue = f value
-      Success(newValue, remaining)
-    | Failure message -> Failure message
-
-  Parser parser
-
-/// Infix version of `map`.
-let (<!>) = mapP
-
-/// Infix version of `map`. Flips parameters.
-let (|>>) x f = mapP f x
-
-/// Lifts a value.
-let returnP x =
-  let parser input = Success(x, input)
-  Parser parser
-
-/// Lifts a function.
-let applyP fP xP =
-  (fP .>>. xP) |> mapP (fun (f, x) -> f x)
-
-/// Infix version of `applyP`.
-let (<*>) = applyP
 
 /// Lifts a binary function.
 let lift2 f xP yP = returnP f <*> xP <*> yP
@@ -144,18 +136,7 @@ let many p =
 
 /// Applies a parser `p` one or more times.
 let many1 p =
-  let parser input =
-    let result = run p input
-
-    match result with
-    | Success(value, remainingInput) ->
-      // If first matched, look for zeroOrMore.
-      let (subsequentValues, remainingInput') = zeroOrMore p remainingInput
-      let values = value :: subsequentValues
-      Success(values, remainingInput')
-    | Failure message -> Failure message
-
-  Parser parser
+  p >>= (fun head -> many p >>= (fun tail -> returnP (head :: tail)))
 
 /// Matches a parser `p` zero or one time.
 let optional p =
@@ -194,19 +175,3 @@ let sepBy1 p sep =
 
 /// Parses zero or more occurrences of `p` separated by `sep`.
 let sepBy p sep = sepBy1 p sep <|> returnP []
-
-/// Takes a parser-producing function `f` and a parser `p` and passes the output of `p` into `f` to create a new parser.
-let bindP f p =
-  let parser input =
-    let result = run p input
-
-    match result with
-    | Success(value, remainingInput) ->
-      let p2 = f value
-      run p2 remainingInput
-    | Failure message -> Failure message
-
-  Parser parser
-
-/// Infix version of `bindP`. Flips parameters.
-let (>>=) p f = bindP f p
