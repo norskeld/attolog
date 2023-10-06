@@ -186,3 +186,11 @@ let (>>.) p1 p2 = p1 .>>. p2 |> mapP (fun (_, b) -> b)
 
 /// Keep only the result of the middle parser.
 let between left middle right = left >>. middle .>> right
+
+/// Parses one or more occurrences of `p` separated by `sep`.
+let sepBy1 p sep =
+  let sepThenP = sep >>. p
+  p .>>. many sepThenP |>> fun (p, ps) -> p :: ps
+
+/// Parses zero or more occurrences of `p` separated by `sep`.
+let sepBy p sep = sepBy1 p sep <|> returnP []
