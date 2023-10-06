@@ -7,6 +7,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{683694BD-65B
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "App", "src\App\App.fsproj", "{DE4ED848-0FE7-4CEE-84AB-A9EF61F5B6F9}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Attolog.Tests", "src\Attolog.Tests\Attolog.Tests.fsproj", "{CA2A2476-0EB4-4E47-8FEE-E9E4BA84629D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -20,8 +22,13 @@ Global
 		{DE4ED848-0FE7-4CEE-84AB-A9EF61F5B6F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DE4ED848-0FE7-4CEE-84AB-A9EF61F5B6F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DE4ED848-0FE7-4CEE-84AB-A9EF61F5B6F9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CA2A2476-0EB4-4E47-8FEE-E9E4BA84629D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CA2A2476-0EB4-4E47-8FEE-E9E4BA84629D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CA2A2476-0EB4-4E47-8FEE-E9E4BA84629D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CA2A2476-0EB4-4E47-8FEE-E9E4BA84629D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{DE4ED848-0FE7-4CEE-84AB-A9EF61F5B6F9} = {683694BD-65BF-4430-9601-822A545422B2}
+		{CA2A2476-0EB4-4E47-8FEE-E9E4BA84629D} = {683694BD-65BF-4430-9601-822A545422B2}
 	EndGlobalSection
 EndGlobal
