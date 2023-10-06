@@ -91,7 +91,7 @@ let mapP f parser =
 /// Infix version of `map`.
 let (<!>) = mapP
 
-/// Infix version of `map` to be used in pipelines.
+/// Infix version of `map`. Flips parameters.
 let (|>>) x f = mapP f x
 
 /// Lifts a value.
@@ -194,3 +194,19 @@ let sepBy1 p sep =
 
 /// Parses zero or more occurrences of `p` separated by `sep`.
 let sepBy p sep = sepBy1 p sep <|> returnP []
+
+/// Takes a parser-producing function `f` and a parser `p` and passes the output of `p` into `f` to create a new parser.
+let bindP f p =
+  let parser input =
+    let result = run p input
+
+    match result with
+    | Success(value, remainingInput) ->
+      let p2 = f value
+      run p2 remainingInput
+    | Failure message -> Failure message
+
+  Parser parser
+
+/// Infix version of `bindP`. Flips parameters.
+let (>>=) p f = bindP f p
