@@ -16,7 +16,7 @@ type Result<'a> =
   override this.ToString() =
     match this with
     | Success(value) -> sprintf "%A" value
-    | Failure(label, message) -> sprintf "Error in %s:\n  %s" label message
+    | Failure(label, message) -> sprintf "Error parsing %s:\n  %s" label message
 
 /// Represents a parsing function.
 type Parser<'T> = {
@@ -172,24 +172,29 @@ let sepBy1 p sep =
 /// Parses zero or more occurrences of `p` separated by `sep`.
 let sepBy p sep = sepBy1 p sep <|> returnP []
 
-/// Matches a specified character `ch`.
-let pchar ch =
-  let label = "pchar"
-
+/// Helper that allows to build more specialized combinators by providing a predicate for a character.
+let satisfy predicate label =
   let parse input =
     if String.IsNullOrEmpty(input) then
       Failure(label, "EOI")
     else
       let first = input.[0]
 
-      if first = ch then
+      if predicate first then
         let remaining = input.[1..]
-        Success(ch, remaining)
+        Success(first, remaining)
       else
-        let message = sprintf "Expected '%c', but got '%c'" ch first
+        let message = sprintf "Unexpected '%c'" first
         Failure(label, message)
 
   { parse = parse; label = label }
+
+/// Matches a specified character `ch`.
+let pchar ch =
+  let predicate = (=) ch
+  let label = sprintf "%c" ch
+
+  satisfy predicate label
 
 /// Chooses any of a list of characters.
 let anyOf chars =
@@ -198,7 +203,7 @@ let anyOf chars =
 
 /// Matches a specified string.
 let pstring str =
-  let label = "pstring"
+  let label = str
 
   str
   |> List.ofSeq
@@ -209,7 +214,7 @@ let pstring str =
 
 /// Parses an integer.
 let pint =
-  let label = "pint"
+  let label = "int"
 
   let resultIntoInt (sign, digits) =
     let integer = digits |> List.toArray |> String |> int
