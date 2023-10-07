@@ -90,14 +90,15 @@ let lift2 f xP yP = returnP f <*> xP <*> yP
 
 /// Combines two parsers in sequence.
 let andThen p1 p2 =
-  p1 >>= (fun res1 -> p2 >>= (fun res2 -> returnP (res1, res2)))
+  let label = sprintf "%s andThen %s" (getLabel p1) (getLabel p2)
+  p1 >>= (fun res1 -> p2 >>= (fun res2 -> returnP (res1, res2))) <?> label
 
 /// Infix version of `andThen`.
 let (.>>.) = andThen
 
 /// Chooses between two parsers.
 let orElse p1 p2 =
-  let label = "orElse" // TODO: Provide a better label inferred from p1 and p2.
+  let label = sprintf "%s orElse %s" (getLabel p1) (getLabel p2)
 
   let parse input =
     let res1 = run p1 input
@@ -138,7 +139,7 @@ let rec internal zeroOrMore p input =
 
 /// Applies a parser `p` zero or more times.
 let many p =
-  let label = "many" // TODO: Provide a better label inferred from p.
+  let label = "many"
   let parse input = Success(zeroOrMore p input)
 
   { parse = parse; label = label }
@@ -191,18 +192,25 @@ let pchar ch =
   { parse = parse; label = label }
 
 /// Chooses any of a list of characters.
-let anyOf chars = chars |> List.map pchar |> choice
+let anyOf chars =
+  let label = sprintf "any of %A" chars
+  chars |> List.map pchar |> choice <?> label
 
 /// Matches a specified string.
 let pstring str =
+  let label = "pstring"
+
   str
   |> List.ofSeq
   |> List.map pchar
   |> sequence
   |> mapP (fun chars -> chars |> List.toArray |> String)
+  <?> label
 
 /// Parses an integer.
 let pint =
+  let label = "pint"
+
   let resultIntoInt (sign, digits) =
     let integer = digits |> List.toArray |> String |> int
 
@@ -213,4 +221,4 @@ let pint =
   let digit = anyOf [ '0' .. '9' ]
   let digits = many1 digit
 
-  optional (pchar '-') .>>. digits |>> resultIntoInt
+  optional (pchar '-') .>>. digits |>> resultIntoInt <?> label
