@@ -2,39 +2,55 @@ module Attolog.Parser
 
 open System
 
+/// Parser label used for error reporting and debugging.
+type ParserLabel = string
+
+/// Parser error type used for error reporting.
+type ParserError = string
+
 /// Represents a parsing result.
 type Result<'a> =
   | Success of 'a
-  | Failure of string
+  | Failure of ParserLabel * ParserError
+
+  override this.ToString() =
+    match this with
+    | Success(value) -> sprintf "%A" value
+    | Failure(label, message) -> sprintf "Error in %s:\n  %s" label message
 
 /// Represents a parsing function.
-type Parser<'T> = Parser of (string -> Result<'T * string>)
+type Parser<'T> = {
+  parse: (string -> Result<'T * string>)
+  label: ParserLabel
+}
 
 /// Runs a parser against the input stream.
-let run p input =
-  let (Parser parser) = p
-  parser input
+let run (p: Parser<_>) input = p.parse input
 
 /// Takes a parser-producing function `f` and a parser `p` and passes the output of `p` into `f` to create a new parser.
 let bindP f p =
-  let parser input =
+  let label = "unknown"
+
+  let parse input =
     let result = run p input
 
     match result with
     | Success(value, remainingInput) ->
       let p2 = f value
       run p2 remainingInput
-    | Failure message -> Failure message
+    | Failure(label, message) -> Failure(label, message)
 
-  Parser parser
+  { parse = parse; label = label }
 
 /// Infix version of `bindP`. Flips parameters.
 let (>>=) p f = bindP f p
 
 /// Lifts a value into `Parser`.
 let returnP x =
-  let parser input = Success(x, input)
-  Parser parser
+  let label = "returnP"
+  let parse input = Success(x, input)
+
+  { parse = parse; label = label }
 
 /// Lifts a function into `Parser`.
 let applyP fP xP =
@@ -64,7 +80,9 @@ let (.>>.) = andThen
 
 /// Chooses between two parsers.
 let orElse p1 p2 =
-  let parser input =
+  let label = "orElse" // TODO: Provide a better label inferred from p1 and p2.
+
+  let parse input =
     let res1 = run p1 input
 
     match res1 with
@@ -73,7 +91,7 @@ let orElse p1 p2 =
       let res2 = run p2 input
       res2
 
-  Parser parser
+  { parse = parse; label = label }
 
 /// Infix version of `orElse`.
 let (<|>) = orElse
@@ -103,8 +121,10 @@ let rec internal zeroOrMore p input =
 
 /// Applies a parser `p` zero or more times.
 let many p =
-  let parser input = Success(zeroOrMore p input)
-  Parser parser
+  let label = "many" // TODO: Provide a better label inferred from p.
+  let parse input = Success(zeroOrMore p input)
+
+  { parse = parse; label = label }
 
 /// Applies a parser `p` one or more times.
 let many1 p =
@@ -136,9 +156,11 @@ let sepBy p sep = sepBy1 p sep <|> returnP []
 
 /// Matches a specified character `ch`.
 let pchar ch =
-  let parser input =
+  let label = "pchar"
+
+  let parse input =
     if String.IsNullOrEmpty(input) then
-      Failure "EOI"
+      Failure(label, "EOI")
     else
       let first = input.[0]
 
@@ -147,9 +169,9 @@ let pchar ch =
         Success(ch, remaining)
       else
         let message = sprintf "Expected '%c', but got '%c'" ch first
-        Failure message
+        Failure(label, message)
 
-  Parser parser
+  { parse = parse; label = label }
 
 /// Chooses any of a list of characters.
 let anyOf chars = chars |> List.map pchar |> choice
