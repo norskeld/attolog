@@ -27,6 +27,23 @@ type Parser<'T> = {
 /// Runs a parser against the input stream.
 let run (p: Parser<_>) input = p.parse input
 
+/// Updates the label in the parser.
+let setLabel p label =
+  let parse input =
+    let res = p.parse input
+
+    match res with
+    | Success s -> Success s
+    | Failure(_, message) -> Failure(label, message)
+
+  { parse = parse; label = label }
+
+/// Infix version of `setLabel`.
+let (<?>) = setLabel
+
+/// Gets the label from a parser.
+let getLabel p = p.label
+
 /// Takes a parser-producing function `f` and a parser `p` and passes the output of `p` into `f` to create a new parser.
 let bindP f p =
   let label = "unknown"
