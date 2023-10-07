@@ -212,6 +212,18 @@ let pstring str =
   |> mapP (fun chars -> chars |> List.toArray |> String)
   <?> label
 
+/// Parses a digit.
+let pdigit =
+  let label = "digit"
+  let predicate = Char.IsDigit
+
+  satisfy predicate label
+
+/// Parses a sequence of digits.
+let pdigits =
+  let label = "digits"
+  many1 pdigit <?> label
+
 /// Parses an integer.
 let pint =
   let label = "int"
@@ -223,7 +235,11 @@ let pint =
     | Some _ -> -integer
     | None -> integer
 
-  let digit = anyOf [ '0' .. '9' ]
-  let digits = many1 digit
+  optional (pchar '-') .>>. pdigits |>> resultIntoInt <?> label
 
-  optional (pchar '-') .>>. digits |>> resultIntoInt <?> label
+/// Parses a single whitespace character.
+let pwhitespace =
+  let label = "whitespace"
+  let predicate = Char.IsWhiteSpace
+
+  satisfy predicate label
