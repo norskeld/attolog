@@ -12,3 +12,5 @@ insert_final_newline = true
 [*.fs]
 fsharp_max_dot_get_expression_width = 40
 fsharp_multiline_bracket_style = stroustrup
+fsharp_record_multiline_formatter = number_of_items
+fsharp_max_record_number_of_items = 1

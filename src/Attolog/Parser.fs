@@ -36,7 +36,10 @@ let setLabel p label =
     | Success s -> Success s
     | Failure(_, message) -> Failure(label, message)
 
-  { parse = parse; label = label }
+  {
+    parse = parse
+    label = label
+  }
 
 /// Infix version of `setLabel`.
 let (<?>) = setLabel
@@ -57,7 +60,10 @@ let bindP f p =
       run p2 remainingInput
     | Failure(label, message) -> Failure(label, message)
 
-  { parse = parse; label = label }
+  {
+    parse = parse
+    label = label
+  }
 
 /// Infix version of `bindP`. Flips parameters.
 let (>>=) p f = bindP f p
@@ -67,7 +73,10 @@ let returnP x =
   let label = "returnP"
   let parse input = Success(x, input)
 
-  { parse = parse; label = label }
+  {
+    parse = parse
+    label = label
+  }
 
 /// Lifts a function into `Parser`.
 let applyP fP xP =
@@ -109,7 +118,10 @@ let orElse p1 p2 =
       let res2 = run p2 input
       res2
 
-  { parse = parse; label = label }
+  {
+    parse = parse
+    label = label
+  }
 
 /// Infix version of `orElse`.
 let (<|>) = orElse
@@ -142,7 +154,10 @@ let many p =
   let label = "many"
   let parse input = Success(zeroOrMore p input)
 
-  { parse = parse; label = label }
+  {
+    parse = parse
+    label = label
+  }
 
 /// Applies a parser `p` one or more times.
 let many1 p =
@@ -187,7 +202,10 @@ let satisfy predicate label =
         let message = sprintf "Unexpected '%c'" first
         Failure(label, message)
 
-  { parse = parse; label = label }
+  {
+    parse = parse
+    label = label
+  }
 
 /// Matches a specified character `ch`.
 let pchar ch =
