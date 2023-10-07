@@ -11,8 +11,8 @@ type Result<'a> =
 type Parser<'T> = Parser of (string -> Result<'T * string>)
 
 /// Runs a parser against the input stream.
-let run parser input =
-  let (Parser parser) = parser
+let run p input =
+  let (Parser parser) = p
   parser input
 
 /// Takes a parser-producing function `f` and a parser `p` and passes the output of `p` into `f` to create a new parser.
@@ -31,10 +31,17 @@ let bindP f p =
 /// Infix version of `bindP`. Flips parameters.
 let (>>=) p f = bindP f p
 
-/// Lifts a value.
+/// Lifts a value into `Parser`.
 let returnP x =
   let parser input = Success(x, input)
   Parser parser
+
+/// Lifts a function into `Parser`.
+let applyP fP xP =
+  fP >>= (fun f -> xP >>= (fun x -> returnP (f x)))
+
+/// Infix version of `applyP`.
+let (<*>) = applyP
 
 /// Maps a `parser`'s result with `f`.
 let mapP f = bindP (f >> returnP)
@@ -45,12 +52,8 @@ let (<!>) = mapP
 /// Infix version of `map`. Flips parameters.
 let (|>>) x f = mapP f x
 
-/// Lifts a function.
-let applyP fP xP =
-  fP >>= (fun f -> xP >>= (fun x -> returnP (f x)))
-
-/// Infix version of `applyP`.
-let (<*>) = applyP
+/// Lifts a binary function.
+let lift2 f xP yP = returnP f <*> xP <*> yP
 
 /// Combines two parsers in sequence.
 let andThen p1 p2 =
@@ -76,50 +79,19 @@ let orElse p1 p2 =
 let (<|>) = orElse
 
 /// Chooses any of a list of parsers.
-let choice parsers = List.reduce orElse parsers
-
-/// Matches a specified character `ch`.
-let pchar ch =
-  let parser input =
-    if String.IsNullOrEmpty(input) then
-      Failure "EOI"
-    else
-      let first = input.[0]
-
-      if first = ch then
-        let remaining = input.[1..]
-        Success(ch, remaining)
-      else
-        let message = sprintf "Expected '%c', but got '%c'" ch first
-        Failure message
-
-  Parser parser
-
-/// Chooses any of a list of characters.
-let anyOf chars = chars |> List.map pchar |> choice
-
-/// Lifts a binary function.
-let lift2 f xP yP = returnP f <*> xP <*> yP
+let choice ps = List.reduce orElse ps
 
 /// Applies parsers in sequence.
-let rec sequence parsers =
+let rec sequence ps =
   let cons head tail = head :: tail
   let consP = lift2 cons
 
-  match parsers with
+  match ps with
   | [] -> returnP []
   | head :: tail -> consP head (sequence tail)
 
-/// Matches a specified string.
-let pstring str =
-  str
-  |> List.ofSeq
-  |> List.map pchar
-  |> sequence
-  |> mapP (fun chars -> chars |> List.toArray |> String)
-
 /// Helper that applies a parser `p` zero or more times collecting values in case of success.
-let rec zeroOrMore p input =
+let rec internal zeroOrMore p input =
   let result = run p input
 
   match result with
@@ -145,6 +117,51 @@ let optional p =
 
   some <|> none
 
+/// Keeps only the result of the left side parser.
+let (.>>) p1 p2 = p1 .>>. p2 |> mapP (fun (a, _) -> a)
+
+/// Keeps only the result of the right side parser.
+let (>>.) p1 p2 = p1 .>>. p2 |> mapP (fun (_, b) -> b)
+
+/// Keeps only the result of the middle parser.
+let between left middle right = left >>. middle .>> right
+
+/// Parses one or more occurrences of `p` separated by `sep`.
+let sepBy1 p sep =
+  let sepThenP = sep >>. p
+  p .>>. many sepThenP |>> fun (p, ps) -> p :: ps
+
+/// Parses zero or more occurrences of `p` separated by `sep`.
+let sepBy p sep = sepBy1 p sep <|> returnP []
+
+/// Matches a specified character `ch`.
+let pchar ch =
+  let parser input =
+    if String.IsNullOrEmpty(input) then
+      Failure "EOI"
+    else
+      let first = input.[0]
+
+      if first = ch then
+        let remaining = input.[1..]
+        Success(ch, remaining)
+      else
+        let message = sprintf "Expected '%c', but got '%c'" ch first
+        Failure message
+
+  Parser parser
+
+/// Chooses any of a list of characters.
+let anyOf chars = chars |> List.map pchar |> choice
+
+/// Matches a specified string.
+let pstring str =
+  str
+  |> List.ofSeq
+  |> List.map pchar
+  |> sequence
+  |> mapP (fun chars -> chars |> List.toArray |> String)
+
 /// Parses an integer.
 let pint =
   let resultIntoInt (sign, digits) =
@@ -158,20 +175,3 @@ let pint =
   let digits = many1 digit
 
   optional (pchar '-') .>>. digits |>> resultIntoInt
-
-/// Keep only the result of the left side parser.
-let (.>>) p1 p2 = p1 .>>. p2 |> mapP (fun (a, _) -> a)
-
-/// Keep only the result of the right side parser.
-let (>>.) p1 p2 = p1 .>>. p2 |> mapP (fun (_, b) -> b)
-
-/// Keep only the result of the middle parser.
-let between left middle right = left >>. middle .>> right
-
-/// Parses one or more occurrences of `p` separated by `sep`.
-let sepBy1 p sep =
-  let sepThenP = sep >>. p
-  p .>>. many sepThenP |>> fun (p, ps) -> p :: ps
-
-/// Parses zero or more occurrences of `p` separated by `sep`.
-let sepBy p sep = sepBy1 p sep <|> returnP []
