@@ -255,6 +255,9 @@ let rec internal zeroOrMore p input =
     (values, remainingInput')
   | Failure _ -> ([], input)
 
+/// Converts a list of chars to a string.
+let charsToString chars = chars |> List.toArray |> String
+
 /// Applies a parser `p` zero or more times.
 let many p =
   let label = sprintf "many %s" (getLabel p)
@@ -271,7 +274,7 @@ let many1 p =
   p >>= (fun head -> many p >>= (fun tail -> returnP (head :: tail))) <?> label
 
 /// Matches a parser `p` zero or one time.
-let optional p =
+let opt p =
   let some = p |>> Some
   let none = returnP None
 
@@ -279,11 +282,11 @@ let optional p =
 
 /// Keeps only the result of the left side parser.
 let (.>>) p1 p2 =
-  p1 .>>. p2 |> mapP (fun (a, _) -> a) <?> getLabel p1
+  p1 .>>. p2 |>> (fun (a, _) -> a) <?> getLabel p1
 
 /// Keeps only the result of the right side parser.
 let (>>.) p1 p2 =
-  p1 .>>. p2 |> mapP (fun (_, b) -> b) <?> getLabel p2
+  p1 .>>. p2 |>> (fun (_, b) -> b) <?> getLabel p2
 
 /// Keeps only the result of the middle parser.
 let between left middle right =
@@ -336,12 +339,7 @@ let anyOf chars =
 let pstring str =
   let label = str
 
-  str
-  |> List.ofSeq
-  |> List.map pchar
-  |> sequence
-  |> mapP (fun chars -> chars |> List.toArray |> String)
-  <?> label
+  str |> List.ofSeq |> List.map pchar |> sequence |>> charsToString <?> label
 
 /// Parses a digit.
 let pdigit =
@@ -353,20 +351,34 @@ let pdigit =
 /// Parses a sequence of digits.
 let pdigits =
   let label = "digits"
-  many1 pdigit <?> label
+  many1 pdigit |>> charsToString <?> label
 
 /// Parses an integer.
 let pint =
   let label = "int"
 
   let resultIntoInt (sign, digits) =
-    let integer = digits |> List.toArray |> String |> int
+    let number = digits |> int
 
     match sign with
-    | Some _ -> -integer
-    | None -> integer
+    | Some _ -> -number
+    | None -> number
 
-  optional (pchar '-') .>>. pdigits |>> resultIntoInt <?> label
+  opt (pchar '-') .>>. pdigits |>> resultIntoInt <?> label
+
+/// Parses a float number.
+let pfloat =
+  let label = "float"
+
+  // helper
+  let toFloat (((sign, whole), _), fractions) =
+    let number = sprintf "%s.%s" whole fractions |> float
+
+    match sign with
+    | Some _ -> -number
+    | None -> number
+
+  opt (pchar '-') .>>. pdigits .>>. pchar '.' .>>. pdigits |>> toFloat <?> label
 
 /// Parses a single whitespace character.
 let pwhitespace =
@@ -374,3 +386,9 @@ let pwhitespace =
   let predicate = Char.IsWhiteSpace
 
   satisfy predicate label
+
+/// Parses zero or more whitespace characters.
+let pspaces = many pwhitespace
+
+/// Parses one or more whitespace characters.
+let pspaces1 = many1 pwhitespace
