@@ -275,10 +275,12 @@ let many1 p =
 
 /// Matches a parser `p` zero or one time.
 let opt p =
+  let label = sprintf "opt %s" (getLabel p)
+
   let some = p |>> Some
   let none = returnP None
 
-  some <|> none
+  some <|> none <?> label
 
 /// Keeps only the result of the left side parser.
 let (.>>) p1 p2 =
@@ -297,11 +299,14 @@ let between left middle right =
 
 /// Parses one or more occurrences of `p` separated by `sep`.
 let sepBy1 p sep =
+  let label = sprintf "sepBy1 %s %s" (getLabel p) (getLabel sep)
   let sepThenP = sep >>. p
-  p .>>. many sepThenP |>> fun (p, ps) -> p :: ps
+  p .>>. many sepThenP |>> (fun (p, ps) -> p :: ps) <?> label
 
 /// Parses zero or more occurrences of `p` separated by `sep`.
-let sepBy p sep = sepBy1 p sep <|> returnP []
+let sepBy p sep =
+  let label = sprintf "sepBy %s %s" (getLabel p) (getLabel sep)
+  sepBy1 p sep <|> returnP [] <?> label
 
 /// Helper that allows to build more specialized combinators by providing a predicate for a character.
 let satisfy predicate label =
@@ -391,7 +396,11 @@ let pwhitespace =
   satisfy predicate label
 
 /// Parses zero or more whitespace characters.
-let pspaces = many pwhitespace
+let pspaces =
+  let label = "spaces"
+  many pwhitespace <?> label
 
 /// Parses one or more whitespace characters.
-let pspaces1 = many1 pwhitespace
+let pspaces1 =
+  let label = "spaces"
+  many1 pwhitespace <?> label
