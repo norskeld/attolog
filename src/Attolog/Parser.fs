@@ -288,6 +288,9 @@ let (.>>) p1 p2 =
 let (>>.) p1 p2 =
   p1 .>>. p2 |>> (fun (_, b) -> b) <?> getLabel p2
 
+/// Applies a parser `p`, ignores the result and returns `x`.
+let (>>%) p x = p |>> (fun _ -> x)
+
 /// Keeps only the result of the middle parser.
 let between left middle right =
   left >>. middle .>> right <?> getLabel middle
