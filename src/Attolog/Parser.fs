@@ -2,30 +2,136 @@ module Attolog.Parser
 
 open System
 
+/// Represents a location in the input stream.
+type Location = {
+  line: int
+  col: int
+}
+
+module Location =
+  /// Default location.
+  let initial = {
+    line = 0
+    col = 0
+  }
+
+  /// Increments the column number and returns a new `Location`.
+  let incrementCol loc = { loc with col = loc.col + 1 }
+
+  /// Increments the line number and returns a new `Location`.
+  let incrementLine loc = {
+    line = loc.line + 1
+    col = 0
+  }
+
+/// Represents the input stream and its current location.
+type InputState = {
+  lines: array<string>
+  location: Location
+}
+
+module InputState =
+  /// Creates a new `InputState` from a string.
+  let fromString str =
+    if String.IsNullOrEmpty(str) then
+      {
+        lines = [||]
+        location = Location.initial
+      }
+    else
+      let separators = [| "\r\n"; "\n" |]
+      let lines = str.Split(separators, StringSplitOptions.None)
+
+      {
+        lines = lines
+        location = Location.initial
+      }
+
+  /// Gets the current line.
+  let currentLine state =
+    let line = state.location.line
+
+    if line < state.lines.Length then
+      state.lines[line]
+    else
+      "EOI"
+
+  /// Gets the next character from the input (if any). Returns a tuple of new `InputState` and the next character.
+  let next state =
+    let line = state.location.line
+    let col = state.location.col
+
+    if line >= state.lines.Length then
+      (state, None)
+    else
+      let currentLine = currentLine state
+
+      if col < currentLine.Length then
+        let char = currentLine.[col]
+        let nextCol = Location.incrementCol state.location
+        let nextState = { state with location = nextCol }
+        (nextState, Some char)
+      else
+        let char = '\n'
+        let nextLine = Location.incrementLine state.location
+        let nextState = { state with location = nextLine }
+        (nextState, Some char)
+
 /// Parser label used for error reporting and debugging.
 type ParserLabel = string
 
 /// Parser error type used for error reporting.
 type ParserError = string
 
-/// Represents a parsing result.
-type Result<'a> =
-  | Success of 'a
-  | Failure of ParserLabel * ParserError
+/// Stores information about the parser location for error messages.
+type ParserLocation = {
+  line: int
+  column: int
+  currentLine: string
+}
 
-  override this.ToString() =
-    match this with
-    | Success(value) -> sprintf "%A" value
-    | Failure(label, message) -> sprintf "Error parsing %s:\n  %s" label message
+module ParserLocation =
+  /// Converts an `InputState` into a `ParserLocation`.
+  let fromInputState state = {
+    line = state.location.line
+    column = state.location.col
+    currentLine = InputState.currentLine state
+  }
+
+/// Represents a parsing result.
+type ParserResult<'a> =
+  | Success of 'a
+  | Failure of ParserLabel * ParserError * ParserLocation
+
+module ParserResult =
+  /// Converts a `ParserResult` into a string.
+  let toString (res: ParserResult<_ * InputState>) =
+    match res with
+    | Success(value, _) -> sprintf "%O" value
+    | Failure(label, message, location) ->
+      let line = location.line + 1
+      let column = location.column
+      let currentLine = location.currentLine
+
+      let locationPrefix = $"{line} | "
+      let locationPrefixOffset = column + locationPrefix.ToString().Length
+
+      let message = sprintf "%*s^ %s" locationPrefixOffset "" message
+
+      sprintf $"Error parsing %s{label}:\n%s{locationPrefix}%s{currentLine}\n%s{message}"
 
 /// Represents a parsing function.
 type Parser<'T> = {
-  parse: (string -> Result<'T * string>)
+  parse: (InputState -> ParserResult<'T * InputState>)
   label: ParserLabel
 }
 
+/// Runs a parser on a `InputState`.
+let runOnInput p input = p.parse input
+
 /// Runs a parser against the input stream.
-let run (p: Parser<_>) input = p.parse input
+let run p input =
+  runOnInput p (InputState.fromString input)
 
 /// Updates the label in the parser.
 let setLabel p label =
@@ -34,7 +140,7 @@ let setLabel p label =
 
     match res with
     | Success s -> Success s
-    | Failure(_, message) -> Failure(label, message)
+    | Failure(_, message, location) -> Failure(label, message, location)
 
   {
     parse = parse
@@ -52,13 +158,13 @@ let bindP f p =
   let label = "unknown"
 
   let parse input =
-    let result = run p input
+    let result = runOnInput p input
 
     match result with
     | Success(value, remainingInput) ->
       let p2 = f value
-      run p2 remainingInput
-    | Failure(label, message) -> Failure(label, message)
+      runOnInput p2 remainingInput
+    | Failure(label, message, location) -> Failure(label, message, location)
 
   {
     parse = parse
@@ -110,12 +216,12 @@ let orElse p1 p2 =
   let label = sprintf "%s orElse %s" (getLabel p1) (getLabel p2)
 
   let parse input =
-    let res1 = run p1 input
+    let res1 = runOnInput p1 input
 
     match res1 with
     | Success _ -> res1
     | Failure _ ->
-      let res2 = run p2 input
+      let res2 = runOnInput p2 input
       res2
 
   {
@@ -140,7 +246,7 @@ let rec sequence ps =
 
 /// Helper that applies a parser `p` zero or more times collecting values in case of success.
 let rec internal zeroOrMore p input =
-  let result = run p input
+  let result = runOnInput p input
 
   match result with
   | Success(firstValue, remainingInput) ->
@@ -151,7 +257,7 @@ let rec internal zeroOrMore p input =
 
 /// Applies a parser `p` zero or more times.
 let many p =
-  let label = "many"
+  let label = sprintf "many %s" (getLabel p)
   let parse input = Success(zeroOrMore p input)
 
   {
@@ -161,7 +267,8 @@ let many p =
 
 /// Applies a parser `p` one or more times.
 let many1 p =
-  p >>= (fun head -> many p >>= (fun tail -> returnP (head :: tail)))
+  let label = sprintf "many1 %s" (getLabel p)
+  p >>= (fun head -> many p >>= (fun tail -> returnP (head :: tail))) <?> label
 
 /// Matches a parser `p` zero or one time.
 let optional p =
@@ -171,13 +278,16 @@ let optional p =
   some <|> none
 
 /// Keeps only the result of the left side parser.
-let (.>>) p1 p2 = p1 .>>. p2 |> mapP (fun (a, _) -> a)
+let (.>>) p1 p2 =
+  p1 .>>. p2 |> mapP (fun (a, _) -> a) <?> getLabel p1
 
 /// Keeps only the result of the right side parser.
-let (>>.) p1 p2 = p1 .>>. p2 |> mapP (fun (_, b) -> b)
+let (>>.) p1 p2 =
+  p1 .>>. p2 |> mapP (fun (_, b) -> b) <?> getLabel p2
 
 /// Keeps only the result of the middle parser.
-let between left middle right = left >>. middle .>> right
+let between left middle right =
+  left >>. middle .>> right <?> getLabel middle
 
 /// Parses one or more occurrences of `p` separated by `sep`.
 let sepBy1 p sep =
@@ -190,17 +300,20 @@ let sepBy p sep = sepBy1 p sep <|> returnP []
 /// Helper that allows to build more specialized combinators by providing a predicate for a character.
 let satisfy predicate label =
   let parse input =
-    if String.IsNullOrEmpty(input) then
-      Failure(label, "EOI")
-    else
-      let first = input.[0]
+    let remainingInput, char = InputState.next input
 
+    match char with
+    | Some first ->
       if predicate first then
-        let remaining = input.[1..]
-        Success(first, remaining)
+        Success(first, remainingInput)
       else
         let message = sprintf "Unexpected '%c'" first
-        Failure(label, message)
+        let location = ParserLocation.fromInputState input
+        Failure(label, message, location)
+    | None ->
+      let message = "EOI"
+      let location = ParserLocation.fromInputState input
+      Failure(label, message, location)
 
   {
     parse = parse
