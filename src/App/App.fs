@@ -1,2 +1,16 @@
-﻿// For more information see https://aka.ms/fsharp-console-apps
-printfn "Hello from F#"
+﻿open Attolog.Parser
+
+let execute p input =
+  let result = run p input
+  let output = ParserResult.toString result
+
+  printfn "%A" output
+  printfn "---------"
+
+let helloWorld =
+  pstring "Hello" .>> pwhitespace .>>. pstring "World"
+  |>> fun (first, second) -> $"{first}! {second}?!"
+
+execute helloWorld "Hello World"
+execute helloWorld "Hello    World"
+execute helloWorld "Hello        World"
