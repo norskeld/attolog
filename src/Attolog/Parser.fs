@@ -2,6 +2,8 @@ module Attolog.Parser
 
 open System
 
+open Attolog.Prelude
+
 /// Represents a location in the input stream.
 type Location = {
   line: int
@@ -132,6 +134,32 @@ let runOnInput p input = p.parse input
 /// Runs a parser against the input stream.
 let run p input =
   runOnInput p (InputState.fromString input)
+
+/// Creates a parser forwarded to ref.
+let createForwardedParser<'a> () =
+  // Dummy parser.
+  let unfixed: Parser<'a> =
+    let label = "unfixed"
+    let parse _ = failwith "Unfixed forwarded parser"
+
+    {
+      parse = parse
+      label = label
+    }
+
+  let parserRef = ref unfixed
+
+  // Runs the forwarded parser.
+  let wrapper =
+    let label = "forwarded"
+    let parse input = runOnInput !parserRef input
+
+    {
+      parse = parse
+      label = label
+    }
+
+  wrapper, parserRef
 
 /// Updates the label in the parser.
 let setLabel p label =
@@ -404,3 +432,17 @@ let pspaces =
 let pspaces1 =
   let label = "spaces"
   many1 pwhitespace <?> label
+
+/// Parses a lowercase letter.
+let plowercase =
+  let label = "lowercase letter"
+  let predicate = Char.IsLower
+
+  satisfy predicate label
+
+/// Parses an uppercase letter.
+let puppercase =
+  let label = "uppercase letter"
+  let predicate = Char.IsUpper
+
+  satisfy predicate label
