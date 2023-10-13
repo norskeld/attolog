@@ -1,8 +1,8 @@
 ﻿open System
 
 open Attolog
-open Attolog.Parser
 open Attolog.Prelude
+open Attolog.Parser
 
 let execute p input =
   let result = run p input
@@ -42,21 +42,25 @@ let pLiteral, pLiteralRef = createForwardedParser<Syntax.Term> ()
 // ---------------------------------------------------------------------------------------------------------------------
 // Definitions:
 
-do pArgsRef :=
-  let pArgsSingle = pLiteral |>> (fun literal -> [ literal ]) in
-  let pArgsMultiple = pLiteral .>> pComma .>>. pArgs |>> (fun (literal, args) -> literal :: args) in
-  pArgsMultiple <|> pArgsSingle
+define pArgsRef {
+  let pArgsSingle = pLiteral |>> (fun literal -> [ literal ])
 
-do
-  pLiteralRef
-  := let pConst = pConstant |>> Syntax.Const in
-     let pVar = pVariable |>> (fun var -> Syntax.Var(var, 0)) in
+  let pArgsMultiple =
+    pLiteral .>> pComma .>>. pArgs |>> (fun (literal, args) -> literal :: args)
 
-     let pApp =
-       pConstant .>>. between pLeftParen pArgs pRightParen
-       |>> (fun (constant, args) -> Syntax.App(constant, args)) in
+  return! pArgsMultiple <|> pArgsSingle
+}
 
-     pApp <|> pConst <|> pVar
+define pLiteralRef {
+  let pConst = pConstant |>> Syntax.Const
+  let pVar = pVariable |>> (fun var -> Syntax.Var(var, 0))
+
+  let pApp =
+    pConstant .>>. between pLeftParen pArgs pRightParen
+    |>> (fun (constant, args) -> Syntax.App(constant, args))
+
+  return! pApp <|> pConst <|> pVar
+}
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Examples:

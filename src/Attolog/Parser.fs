@@ -446,3 +446,18 @@ let puppercase =
   let predicate = Char.IsUpper
 
   satisfy predicate label
+
+[<AutoOpen>]
+module Define =
+  /// Computation expression builder to define forwarded parsers.
+  type DefineBuilder<'T>(forwaredRef: ref<Parser<'T>>) =
+    member _.Bind(p, f) : Parser<_> = bindP f p
+
+    member _.Return(x) : unit =
+      let result = returnP x
+      forwaredRef := result
+
+    member _.ReturnFrom(x: Parser<_>) : unit = forwaredRef := x
+
+  /// Computation expression to define forwarded parsers.
+  let define forwardedRef = new DefineBuilder<_>(forwardedRef)
