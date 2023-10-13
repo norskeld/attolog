@@ -284,7 +284,7 @@ let rec internal zeroOrMore p input =
   | Failure _ -> ([], input)
 
 /// Converts a list of chars to a string.
-let charsToString chars = chars |> List.toArray |> String
+let charsToString chars = chars |> List.toArray |> string
 
 /// Applies a parser `p` zero or more times.
 let many p =
