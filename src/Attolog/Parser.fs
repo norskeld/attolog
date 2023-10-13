@@ -109,7 +109,7 @@ module ParserResult =
   /// Converts a `ParserResult` into a string.
   let toString (res: ParserResult<_ * InputState>) =
     match res with
-    | Success(value, _) -> sprintf "%O" value
+    | Success(value, _) -> sprintf "%A" value
     | Failure(label, message, location) ->
       let line = location.line + 1
       let column = location.column
@@ -432,6 +432,9 @@ let pspaces =
 let pspaces1 =
   let label = "spaces"
   many1 pwhitespace <?> label
+
+/// Returns a parser `p` surrounded by whitespace.
+let spaced p = between pspaces p pspaces
 
 /// Parses a lowercase letter.
 let plowercase =
