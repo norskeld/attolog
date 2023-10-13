@@ -3,5 +3,6 @@
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "Ionide.Ionide-fsharp"
   },
-  "FSharp.showExplorerOnStartup": false
+  "FSharp.showExplorerOnStartup": false,
+  "FSharp.lineLens.enabled": "never"
 }
