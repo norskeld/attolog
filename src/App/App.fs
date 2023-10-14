@@ -37,6 +37,7 @@ let pFile, pFileRef = createForwardedParser<list<Syntax.Command>> ()
 let pExpr, pExprRef = createForwardedParser<Syntax.Command> ()
 let pQuery, pQueryRef = createForwardedParser<Syntax.Command> ()
 let pAssert, pAssertRef = createForwardedParser<Syntax.Command> ()
+let pComment, pCommentRef = createForwardedParser<Syntax.Command> ()
 let pAtom, pAtomRef = createForwardedParser<Syntax.Atom> ()
 let pClause, pClauseRef = createForwardedParser<Syntax.Clause> ()
 let pArgs, pArgsRef = createForwardedParser<list<Syntax.Term>> ()
@@ -46,20 +47,22 @@ let pLiteral, pLiteralRef = createForwardedParser<Syntax.Term> ()
 // Definitions:
 
 // file:
-//   | EOF       { [] }
 //   | expr file { $1 :: $2 }
+//   | EOF       { [] }
 define pFileRef {
+  let pEof = (eof >>% [])
   let pCommand = spaced pExpr .>>. pFile |>> (fun (expr, file) -> expr :: file)
 
-  return! pCommand <|> returnP []
+  return! pEof <|> pCommand
 }
 
 // expr:
 //   | query   { $1 }
 //   | assert  { $1 }
-define pExprRef { return! pQuery <|> pAssert }
+//   | comment { $1 }
+define pExprRef { return! pComment <|> pQuery <|> pAssert <?> "expression" }
 
-// goal:
+// query:
 //   | QUERY clause PERIOD { Query $2 }
 define pQueryRef {
   return! tQuery >>. pClause .>> tPeriod |>> (fun (clause) -> Syntax.Query(clause))
@@ -76,6 +79,19 @@ define pAssertRef {
     |>> (fun (atom, clause) -> Syntax.Assert(atom, clause))
 
   return! pAssertionAtom <|> pAssertionClause
+}
+
+// comment:
+//   | COMMENT { Comment $1 }
+define pCommentRef {
+  let pCommentStart = pstring "--"
+  let pCommentEnd = pchar '\n' <?> "newline"
+  let pAny = satisfy ((<>) '\n') "anything but newline"
+
+  return!
+    between pCommentStart (many1 pAny) pCommentEnd
+    |>> (fun chars -> Syntax.Comment((charsToString chars).Trim()))
+    <?> "comment"
 }
 
 // atom:
@@ -141,17 +157,19 @@ define pLiteralRef {
 execute
   pFile
   """
+    -- Define persons.
     female(leia).
     male(vader).
     male(luke).
     male(kylo).
 
+    -- Define relations.
     child(luke, vader).
     child(leia, vader).
     child(kylo, leia).
 
-    son(X,Y) :- male(X), child(X,Y).
-    daughter(X,y) :- female(X), child(X,Y).
+    son(X, Y) :- male(X), child(X, Y).
+    daughter(X, Y) :- female(X), child(X, Y).
 
-    grandchild(X,Z) :- child(X,Y), child(Y,Z).
+    grandchild(X, Z) :- child(X, Y), child(Y, Z).
   """

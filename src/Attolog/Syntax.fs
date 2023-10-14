@@ -36,3 +36,5 @@ type Command =
   | Assert of Assertion
   /// Query `?- a`.
   | Query of Clause
+  /// Comment.
+  | Comment of string
