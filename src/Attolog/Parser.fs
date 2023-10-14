@@ -56,7 +56,7 @@ module InputState =
     if line < state.lines.Length then
       state.lines[line]
     else
-      "EOI"
+      "End of input"
 
   /// Gets the next character from the input (if any). Returns a tuple of new `InputState` and the next character.
   let next state =
@@ -78,6 +78,15 @@ module InputState =
         let nextLine = Location.incrementLine state.location
         let nextState = { state with location = nextLine }
         (nextState, Some char)
+
+  /// Checks if given state has reached the end of input.
+  let isEOF state =
+    let currentLine = currentLine state
+
+    let isColOverflow = state.location.col >= currentLine.Length
+    let isLineOverflow = state.location.line >= state.lines.Length
+
+    isColOverflow || isLineOverflow
 
 /// Parser label used for error reporting and debugging.
 type ParserLabel = string
@@ -350,7 +359,7 @@ let satisfy predicate label =
         let location = ParserLocation.fromInputState input
         Failure(label, message, location)
     | None ->
-      let message = "EOI"
+      let message = "Unexpected end of input"
       let location = ParserLocation.fromInputState input
       Failure(label, message, location)
 
@@ -449,6 +458,25 @@ let puppercase =
   let predicate = Char.IsUpper
 
   satisfy predicate label
+
+/// Matches the end of input.
+let eof =
+  let label = "eof"
+
+  let parse input =
+    let remainingInput, _ = InputState.next input
+
+    if InputState.isEOF remainingInput then
+      Success((), remainingInput)
+    else
+      let message = "Expected end of input"
+      let location = ParserLocation.fromInputState input
+      Failure(label, message, location)
+
+  {
+    parse = parse
+    label = label
+  }
 
 [<AutoOpen>]
 module Define =
