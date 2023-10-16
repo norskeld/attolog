@@ -1,148 +1,31 @@
-module Attolog.Parser
+[<AutoOpen>]
+module Attolog.Parser.Library
 
 open System
 
 open Attolog.Prelude
+open Attolog.Parser.State
+open Attolog.Parser.Types
 
-/// Represents a location in the input stream.
-type Location = {
-  line: int
-  col: int
-}
-
-module Location =
-  /// Default location.
-  let initial = {
-    line = 0
-    col = 0
-  }
-
-  /// Increments the column number and returns a new `Location`.
-  let incrementCol loc = { loc with col = loc.col + 1 }
-
-  /// Increments the line number and returns a new `Location`.
-  let incrementLine loc = {
-    line = loc.line + 1
-    col = 0
-  }
-
-/// Represents the input stream and its current location.
-type InputState = {
-  lines: array<string>
-  location: Location
-}
-
-module InputState =
-  /// Creates a new `InputState` from a string.
-  let fromString str =
-    if String.IsNullOrEmpty(str) then
-      {
-        lines = [||]
-        location = Location.initial
-      }
-    else
-      let separators = [| "\r\n"; "\n" |]
-      let lines = str.Split(separators, StringSplitOptions.None)
-
-      {
-        lines = lines
-        location = Location.initial
-      }
-
-  /// Gets the current line.
-  let currentLine state =
-    let line = state.location.line
-
-    if line < state.lines.Length then
-      state.lines[line]
-    else
-      "End of input"
-
-  /// Gets the next character from the input (if any). Returns a tuple of new `InputState` and the next character.
-  let next state =
-    let line = state.location.line
-    let col = state.location.col
-
-    if line >= state.lines.Length then
-      (state, None)
-    else
-      let currentLine = currentLine state
-
-      if col < currentLine.Length then
-        let char = currentLine.[col]
-        let nextCol = Location.incrementCol state.location
-        let nextState = { state with location = nextCol }
-        (nextState, Some char)
-      else
-        let char = '\n'
-        let nextLine = Location.incrementLine state.location
-        let nextState = { state with location = nextLine }
-        (nextState, Some char)
-
-  /// Checks if given state has reached the end of input.
-  let isEOF state =
-    let currentLine = currentLine state
-
-    let isColOverflow = state.location.col >= currentLine.Length
-    let isLineOverflow = state.location.line >= state.lines.Length
-
-    isColOverflow || isLineOverflow
-
-/// Parser label used for error reporting and debugging.
-type ParserLabel = string
-
-/// Parser error type used for error reporting.
-type ParserError = string
-
-/// Stores information about the parser location for error messages.
-type ParserLocation = {
-  line: int
-  column: int
-  currentLine: string
-}
-
-module ParserLocation =
-  /// Converts an `InputState` into a `ParserLocation`.
-  let fromInputState state = {
-    line = state.location.line
-    column = state.location.col
-    currentLine = InputState.currentLine state
-  }
-
-/// Represents a parsing result.
-type ParserResult<'a> =
-  | Success of 'a
-  | Failure of ParserLabel * ParserError * ParserLocation
-
-module ParserResult =
-  /// Converts a `ParserResult` into a string.
-  let toString (res: ParserResult<_ * InputState>) =
-    match res with
-    | Success(value, _) -> sprintf "%A" value
-    | Failure(label, message, location) ->
-      let line = location.line + 1
-      let column = location.column
-      let currentLine = location.currentLine
-
-      let locationPrefix = $"{line} | "
-      let locationPrefixOffset = column + locationPrefix.ToString().Length
-
-      let message = sprintf "%*s^ %s" locationPrefixOffset "" message
-
-      sprintf $"Error parsing %s{label}:\n%s{locationPrefix}%s{currentLine}\n%s{message}"
-
-/// Represents a parsing function.
-type Parser<'T> = {
-  parse: (InputState -> ParserResult<'T * InputState>)
-  label: ParserLabel
-}
-
-/// Runs a parser on a `InputState`.
+/// Runs a parser on a `State`.
 let runOnInput p input = p.parse input
 
 /// Runs a parser against the input stream.
-let run p input =
-  runOnInput p (InputState.fromString input)
+let run p input = runOnInput p (State.fromString input)
+
+/// Helper that applies a parser `p` zero or more times collecting values in case of success.
+let rec internal zeroOrMore p input =
+  let result = runOnInput p input
+
+  match result with
+  | Success(firstValue, remainingInput) ->
+    let (subsequentValues, remainingInput') = zeroOrMore p remainingInput
+    let values = firstValue :: subsequentValues
+    (values, remainingInput')
+  | Failure _ -> ([], input)
+
+/// Helper that converts a list of chars to a string.
+let charsToString chars : string = chars |> List.toArray |> String
 
 /// Creates a parser forwarded to ref.
 let createForwardedParser<'a> () =
@@ -237,8 +120,24 @@ let (<!>) = mapP
 /// Infix version of `map`. Flips parameters.
 let (|>>) x f = mapP f x
 
-/// Lifts a binary function.
+/// Lifts a binary function into `Parser`.
 let lift2 f xP yP = returnP f <*> xP <*> yP
+
+[<AutoOpen>]
+module Define =
+  /// Computation expression builder to define forwarded parsers.
+  type DefineBuilder<'T>(forwaredRef: ref<Parser<'T>>) =
+    member _.Bind(p, f) : Parser<_> = bindP f p
+
+    member _.Return(x) : unit =
+      let result = returnP x
+      forwaredRef := result
+
+    member _.ReturnFrom(x: Parser<_>) : unit = forwaredRef := x
+
+  /// Computation expression to define forwarded parsers.
+  let define forwardedRef = new DefineBuilder<_>(forwardedRef)
+
 
 /// Combines two parsers in sequence.
 let andThen p1 p2 =
@@ -280,20 +179,6 @@ let rec sequence ps =
   match ps with
   | [] -> returnP []
   | head :: tail -> consP head (sequence tail)
-
-/// Helper that applies a parser `p` zero or more times collecting values in case of success.
-let rec internal zeroOrMore p input =
-  let result = runOnInput p input
-
-  match result with
-  | Success(firstValue, remainingInput) ->
-    let (subsequentValues, remainingInput') = zeroOrMore p remainingInput
-    let values = firstValue :: subsequentValues
-    (values, remainingInput')
-  | Failure _ -> ([], input)
-
-/// Converts a list of chars to a string.
-let charsToString chars : string = chars |> List.toArray |> String
 
 /// Applies a parser `p` zero or more times.
 let many p =
@@ -348,7 +233,7 @@ let sepBy p sep =
 /// Helper that allows to build more specialized combinators by providing a predicate for a character.
 let satisfy predicate label =
   let parse input =
-    let remainingInput, char = InputState.next input
+    let remainingInput, char = State.next input
 
     match char with
     | Some first ->
@@ -356,11 +241,11 @@ let satisfy predicate label =
         Success(first, remainingInput)
       else
         let message = sprintf "Unexpected '%c'" first
-        let location = ParserLocation.fromInputState input
+        let location = ParserLocation.fromState input
         Failure(label, message, location)
     | None ->
       let message = "Unexpected end of input"
-      let location = ParserLocation.fromInputState input
+      let location = ParserLocation.fromState input
       Failure(label, message, location)
 
   {
@@ -369,37 +254,37 @@ let satisfy predicate label =
   }
 
 /// Matches a specified character `ch`.
-let pchar ch =
+let char ch =
   let predicate = (=) ch
   let label = sprintf "%c" ch
 
   satisfy predicate label
 
-/// Chooses any of a list of characters.
+/// Matches a character from the given `chars` list.
 let anyOf chars =
   let label = sprintf "any of %A" chars
-  chars |> List.map pchar |> choice <?> label
+  chars |> List.map char |> choice <?> label
 
 /// Matches a specified string.
-let pstring str =
+let tag str =
   let label = str
 
-  str |> List.ofSeq |> List.map pchar |> sequence |>> charsToString <?> label
+  str |> List.ofSeq |> List.map char |> sequence |>> charsToString <?> label
 
 /// Parses a digit.
-let pdigit =
+let digit =
   let label = "digit"
   let predicate = Char.IsDigit
 
   satisfy predicate label
 
 /// Parses a sequence of digits.
-let pdigits =
+let digits =
   let label = "digits"
-  many1 pdigit |>> charsToString <?> label
+  many1 digit |>> charsToString <?> label
 
 /// Parses an integer.
-let pint =
+let int =
   let label = "int"
 
   let resultIntoInt (sign, digits) =
@@ -409,10 +294,10 @@ let pint =
     | Some _ -> -number
     | None -> number
 
-  opt (pchar '-') .>>. pdigits |>> resultIntoInt <?> label
+  opt (char '-') .>>. digits |>> resultIntoInt <?> label
 
 /// Parses a float number.
-let pfloat =
+let float =
   let label = "float"
 
   // helper
@@ -423,37 +308,37 @@ let pfloat =
     | Some _ -> -number
     | None -> number
 
-  opt (pchar '-') .>>. pdigits .>>. pchar '.' .>>. pdigits |>> toFloat <?> label
+  opt (char '-') .>>. digits .>>. char '.' .>>. digits |>> toFloat <?> label
 
 /// Parses a single whitespace character.
-let pwhitespace =
+let whitespace =
   let label = "whitespace"
   let predicate = Char.IsWhiteSpace
 
   satisfy predicate label
 
 /// Parses zero or more whitespace characters.
-let pspaces =
+let spaces =
   let label = "spaces"
-  many pwhitespace <?> label
+  many whitespace <?> label
 
 /// Parses one or more whitespace characters.
-let pspaces1 =
+let spaces1 =
   let label = "spaces"
-  many1 pwhitespace <?> label
+  many1 whitespace <?> label
 
 /// Returns a parser `p` surrounded by whitespace.
-let spaced p = between pspaces p pspaces
+let spaced p = between spaces p spaces
 
 /// Parses a lowercase letter.
-let plowercase =
+let lowercase =
   let label = "lowercase letter"
   let predicate = Char.IsLower
 
   satisfy predicate label
 
 /// Parses an uppercase letter.
-let puppercase =
+let uppercase =
   let label = "uppercase letter"
   let predicate = Char.IsUpper
 
@@ -464,31 +349,16 @@ let eof =
   let label = "eof"
 
   let parse input =
-    let remainingInput, _ = InputState.next input
+    let remainingInput, _ = State.next input
 
-    if InputState.isEOF remainingInput then
+    if State.isEOF remainingInput then
       Success((), remainingInput)
     else
       let message = "Expected end of input"
-      let location = ParserLocation.fromInputState input
+      let location = ParserLocation.fromState input
       Failure(label, message, location)
 
   {
     parse = parse
     label = label
   }
-
-[<AutoOpen>]
-module Define =
-  /// Computation expression builder to define forwarded parsers.
-  type DefineBuilder<'T>(forwaredRef: ref<Parser<'T>>) =
-    member _.Bind(p, f) : Parser<_> = bindP f p
-
-    member _.Return(x) : unit =
-      let result = returnP x
-      forwaredRef := result
-
-    member _.ReturnFrom(x: Parser<_>) : unit = forwaredRef := x
-
-  /// Computation expression to define forwarded parsers.
-  let define forwardedRef = new DefineBuilder<_>(forwardedRef)

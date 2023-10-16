@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Prelude.fs" />
+
+    <Compile Include="Parser/Location.fs" />
+    <Compile Include="Parser/State.fs" />
+    <Compile Include="Parser/Types.fs" />
+    <Compile Include="Parser/Library.fs" />
+
+    <Compile Include="Core/Syntax.fs" />
+    <Compile Include="Core/Parser.fs" />
+
+    <Compile Include="Main.fs" />
+  </ItemGroup>
+
+</Project>

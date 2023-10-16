@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <BaseOutputPath>.output</BaseOutputPath>
+    <BaseIntermediateOutputPath>.output</BaseIntermediateOutputPath>
+  </PropertyGroup>
+</Project>

@@ -9,4 +9,5 @@ bin
 *.exe
 !.paket/paket.bootstrapper.exe
 .ionide/
+.output
 .fake

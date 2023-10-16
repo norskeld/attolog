@@ -1,4 +1,4 @@
-﻿module Attolog.Syntax
+module Attolog.Core.Syntax
 
 /// Constants and atoms start with lower-case letters.
 type Constant = string
