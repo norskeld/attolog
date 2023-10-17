@@ -1,4 +1,4 @@
-﻿module Attolog.Main
+module Attolog.Main
 
 open Attolog.Parser
 open Attolog.Core.Parser
