@@ -1,8 +1,8 @@
 module Attolog.Core.Unifier
 
-open Syntax
+open Attolog.Core.Syntax
 
-/// `NoUnify` is raised when terms cannot be unified.
+/// Raised when terms cannot be unified.
 exception NoUnify
 
 /// Returns the value of variable instance `x` in environment `env`.
