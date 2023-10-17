@@ -1,13 +1,6 @@
 module Attolog.Main
 
-open Attolog.Parser
 open Attolog.Core.Parser
-
-let execute p input =
-  let result = run p input
-  let output = ParserResult<_>.toString result
-
-  printfn "%A" output
 
 [<EntryPoint>]
 let main _ =

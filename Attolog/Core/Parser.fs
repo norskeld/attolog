@@ -5,6 +5,12 @@ open Attolog.Parser
 // ---------------------------------------------------------------------------------------------------------------------
 // Helpers:
 
+let execute p input =
+  let result = run p input
+  let output = ParserResult<_>.toString result
+
+  printfn "%A" output
+
 let private collect (first, rest) = charsToString (first :: rest)
 
 // ---------------------------------------------------------------------------------------------------------------------
