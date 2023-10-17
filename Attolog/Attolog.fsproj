@@ -15,6 +15,7 @@
 
     <Compile Include="Core/Syntax.fs" />
     <Compile Include="Core/Parser.fs" />
+    <Compile Include="Core/Unifier.fs" />
 
     <Compile Include="Main.fs" />
   </ItemGroup>
