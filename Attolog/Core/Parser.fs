@@ -3,20 +3,12 @@ module Attolog.Core.Parser
 open Attolog.Parser
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Helpers:
-
-let execute p input =
-  let result = run p input
-  let output = ParserResult<_>.toString result
-
-  printfn "%A" output
-
-let private collect (first, rest) = charsToString (first :: rest)
-
-// ---------------------------------------------------------------------------------------------------------------------
 // Lexical tokens (terminals) and some non-terminal stuff:
 
 module private Lexical =
+  /// Collects a list of chars into a string.
+  let collect (first, rest) = charsToString (first :: rest)
+
   let tAssert = tag ":-"
   let tQuery = tag "?-"
   let tTrue = tag "true"
@@ -33,7 +25,9 @@ module private Lexical =
 // ---------------------------------------------------------------------------------------------------------------------
 // Forwarded refs for defining recursive parsers:
 
-let pDocument, private pDocumentRef = createForwardedParser<list<Syntax.Command>> ()
+let private pDocument, private pDocumentRef =
+  createForwardedParser<list<Syntax.Command>> ()
+
 let private pExpr, private pExprRef = createForwardedParser<Syntax.Command> ()
 let private pQuery, private pQueryRef = createForwardedParser<Syntax.Command> ()
 let private pAssert, private pAssertRef = createForwardedParser<Syntax.Command> ()
@@ -153,3 +147,23 @@ define pLiteralRef {
 
   return! pApp <|> pConst <|> pVar
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Helpers:
+
+/// Runs a given parser `p` on input `input` and prints the result to stdout.
+let runAndPrint (p: Parser<_>) (input: string) : unit =
+  let result = run p input
+  let output = ParserResult<_>.toString result
+
+  printfn "%A" output
+
+/// Parses a given input `input` into a syntax tree.
+let parse (input: string) : Result<list<Syntax.Command>, string> =
+  match run pDocument input with
+  | Success(result, _) -> Ok result
+  | Failure(_) as result ->
+    let output = ParserResult<_>.toString result
+    let message = sprintf "%A" output
+
+    Error message
