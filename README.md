@@ -19,8 +19,13 @@ The language currently consists of the following terms:
   - Start with an upper case letter followed by alphanumeric characters or `_`.
   - Examples: `X`, `Y`, `Variable`.
 - **Composite terms**.
-  - Have the form `f(t1, ..., tn)` where `f` is a constant and `t1` and `tn` are terms.
+  - Have the form `f(t1, ..., tn)` where `f` is a constant and `t1, ..., tn` are terms.
   - Examples: `son(abel, adam)`, `less(X, plus(X, one))`.
+
+## TODO
+
+- [ ] Get rid of exceptions, embrace errors as values.
+- [ ] Refactor solver to produce values instead of effects (direct printing, reading input, etc).
 
 ## License
 
