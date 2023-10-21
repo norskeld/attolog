@@ -75,6 +75,9 @@ type Term with
 
 type Env with
 
+  /// Creates an empty environment.
+  static member empty: Env = { values = [] }
+
   /// Returns a string representation of the environment. It only keeps instance variables at level 0, i.e. those that
   /// appear in the toplevel query.
   static member toString(env: Env) : string =
