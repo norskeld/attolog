@@ -14,7 +14,7 @@ exception NoSolution
 type Choice = Database * Env * Clause * int
 
 /// The global database of assertions.
-let db: ref<Database> = ref []
+let private db: ref<Database> = ref []
 
 /// Add a new assertion at the end of the current database.
 let assertz (a: Assertion) =
@@ -55,10 +55,10 @@ let rec printSolution (choices: list<Choice>) (env: Env) =
     | _ -> raise NoSolution
 
 /// Looks for other answers. It accepts a list of choices. It continues the search at the first choice in the list.
-and continueSearch =
-  function
+and continueSearch (choices: list<Choice>) =
+  match choices with
   | [] -> raise NoSolution
-  | (asrl, env, gs, n) :: choices -> solve choices asrl env gs n
+  | (asrl, env, clauses, n) :: choices -> solve choices asrl env clauses n
 
 /// Looks for the proof of clause `clause`.
 ///
@@ -68,13 +68,13 @@ and continueSearch =
 /// - `n` is the search depth which increases at each level of search.
 ///
 /// When a solution is found, it is printed. The user then decides whether other solutions should be searched for.
-and solve choices asrl env clause n =
+and solve (choices: list<Choice>) (asrl: Database) (env: Env) (clause: Clause) (n: int) =
   /// Reduces atom `atom` to subgoals by using the first assertion in the assertion list `asrl` whose conclusions
   /// matches `atom`.
   ///
   /// Returns `None` if the atom can't be reduced.
-  let rec reduceAtom atom =
-    function
+  let rec reduceAtom (atom: Atom) (asrl: Database) =
+    match asrl with
     | [] -> None
     | (atom', lst) :: asrl' ->
       try
@@ -98,10 +98,10 @@ and solve choices asrl env clause n =
       let choices' = (asrl', env, clause, n) :: choices
       solve choices' !db env' (subgoals @ clause') (n + 1)
 
-/// Searches for the proof of clause `c` using the global databased `db`.
+/// Searches for the proof of clause `clause` using the global database `db`.
 ///
 /// TODO: Avoid effects, produce value(s) instead.
-let solveToplevel clause =
+let solveToplevel (clause: Clause) =
   try
     solve [] !db Env.empty clause 1
   with NoSolution ->
