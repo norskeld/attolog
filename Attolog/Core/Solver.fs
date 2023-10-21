@@ -9,8 +9,8 @@ open Attolog.Core.Syntax
 exception NoSolution
 
 /// Represents a choice point in the proof search at which we may continue searching for another solution. It is a
-/// tuple `[(asrl, env, c, n)]` where `asrl` for other solutions of clause `c` in environment `env`, using assertion
-/// list `asrl`, where `n` is the search depth.
+/// tuple `(asrl, env, clause, n)` where `asrl` is the assertion list used to search for other solutions of clause
+/// `clause` in environment `env`, and `n` is the search depth.
 type Choice = Database * Env * Clause * int
 
 /// The global database of assertions.
