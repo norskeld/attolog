@@ -18,8 +18,11 @@ module private Lexical =
   let tPeriod = tag "."
 
   let pNameBase = lowercase <|> uppercase <|> digit <|> char '_'
-  let pConstant = lowercase .>>. many (pNameBase <|> char '-') |>> collect
-  let pVariable = uppercase .>>. many pNameBase |>> collect
+
+  let pConstant =
+    lowercase .>>. many (pNameBase <|> char '-') |>> collect <?> "constant"
+
+  let pVariable = uppercase .>>. many pNameBase |>> collect <?> "variable"
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Forwarded refs for defining recursive parsers:
@@ -43,7 +46,9 @@ let private pLiteral, private pLiteralRef = createForwardedParser<Syntax.Term> (
 //   | EOF       { [] }
 define pDocumentRef {
   let pEof = (eof >>% [])
-  let pCommand = spaced pExpr .>>. pDocument |>> (fun (expr, file) -> expr :: file)
+
+  let pCommand =
+    spaced pExpr .>>. pDocument |>> (fun (expr, file) -> expr :: file) <?> "command"
 
   return! pEof <|> pCommand
 }
@@ -59,6 +64,7 @@ define pQueryRef {
   return!
     spaced Lexical.tQuery >>. pClause .>> spaced Lexical.tPeriod
     |>> (fun (clause) -> Syntax.Query(clause))
+    <?> "query"
 }
 
 // assert:
@@ -72,7 +78,7 @@ define pAssertRef {
     pAtom .>> spaced Lexical.tAssert .>>. pClause .>> spaced Lexical.tPeriod
     |>> (fun (atom, clause) -> Syntax.Assert(atom, clause))
 
-  return! pAssertionAtom <|> pAssertionClause
+  return! pAssertionAtom <|> pAssertionClause <?> "assertion"
 }
 
 // atom:
@@ -85,7 +91,7 @@ define pAtomRef {
     Lexical.pConstant .>> Lexical.tLeftParen .>>. pArgs .>> Lexical.tRightParen
     |>> (fun (constant, args) -> (constant, args))
 
-  return! pAtomArgful <|> pAtomArgless
+  return! pAtomArgful <|> pAtomArgless <?> "atom"
 }
 
 // clause:
@@ -94,13 +100,14 @@ define pAtomRef {
 //   | atom COMMA clause { $1 :: $3 }
 define pClauseRef {
   let pTrue = spaced Lexical.tTrue >>% []
+
   let pAtomSingle = pAtom |>> (fun atom -> [ atom ])
 
   let pAtomList =
     spaced pAtom .>> Lexical.tComma .>>. spaced pClause
     |>> (fun (atom, clause) -> atom :: clause)
 
-  return! pTrue <|> pAtomList <|> pAtomSingle
+  return! pTrue <|> pAtomList <|> pAtomSingle <?> "clause"
 }
 
 // args:
@@ -113,7 +120,7 @@ define pArgsRef {
     spaced pLiteral .>> Lexical.tComma .>>. pArgs
     |>> (fun (literal, args) -> literal :: args)
 
-  return! pArguments <|> pArgument
+  return! pArguments <|> pArgument <?> "args"
 }
 
 // literal:
@@ -121,13 +128,14 @@ define pArgsRef {
 //   | VAR                      { Var ($1, 0) }
 //   | CONST LPAREN args RPAREN { App ($1, $3) }
 define pLiteralRef {
-  let pConst = Lexical.pConstant |>> Syntax.Const
+  let pConst = Lexical.pConstant |>> Syntax.Const <?> "constant"
 
-  let pVar = Lexical.pVariable |>> (fun var -> Syntax.Var(var, 0))
+  let pVar = Lexical.pVariable |>> (fun var -> Syntax.Var(var, 0)) <?> "variable"
 
   let pApp =
     Lexical.pConstant .>>. between Lexical.tLeftParen pArgs Lexical.tRightParen
     |>> (fun (constant, args) -> Syntax.App(constant, args))
+    <?> "application"
 
   return! pApp <|> pConst <|> pVar
 }

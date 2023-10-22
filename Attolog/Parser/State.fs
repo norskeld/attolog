@@ -53,7 +53,7 @@ type State = {
     if line < state.lines.Length then
       state.lines[line]
     else
-      "End of input"
+      "<eof>"
 
   /// Gets the next character from the input (if any). Returns a tuple of new `State` and the next character.
   static member next state =
