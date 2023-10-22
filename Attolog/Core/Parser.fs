@@ -81,7 +81,7 @@ define pAssertRef {
 // comment:
 //   | COMMENT { Comment $1 }
 define pCommentRef {
-  let pCommentStart = tag "--"
+  let pCommentStart = tag "%"
   let pCommentEnd = char '\n' <?> "newline"
   let pAny = satisfy ((<>) '\n') "anything but newline"
 
