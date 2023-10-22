@@ -18,9 +18,9 @@ module private Lexical =
   let tComma = tag ","
   let tPeriod = tag "."
 
-  let pName = many (lowercase <|> uppercase <|> digit <|> char '_')
-  let pConstant = lowercase .>>. pName |>> collect
-  let pVariable = uppercase .>>. pName |>> collect
+  let pNameBase = lowercase <|> uppercase <|> digit <|> char '_'
+  let pConstant = lowercase .>>. many (pNameBase <|> char '-') |>> collect
+  let pVariable = uppercase .>>. many pNameBase |>> collect
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Forwarded refs for defining recursive parsers:
