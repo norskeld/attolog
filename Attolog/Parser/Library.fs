@@ -10,8 +10,13 @@ open Attolog.Parser.Types
 /// Runs a parser on a `State`.
 let runOnInput p input = p.parse input
 
-/// Runs a parser against the input stream.
-let run p input = runOnInput p (State.fromString input)
+/// Runs a parser against the input stream using the default state config.
+let run p input =
+  runOnInput p (State.create input StateConfig.initial)
+
+/// Runs a parser against the input stream using the provided state config.
+let runWithConfig p config input =
+  runOnInput p (State.create input config)
 
 /// Helper that applies a parser `p` zero or more times collecting values in case of success.
 let rec internal zeroOrMore p input =

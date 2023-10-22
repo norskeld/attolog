@@ -3,7 +3,17 @@ module Attolog.Parser.State
 
 open System
 
-open Attolog.Parser.Location
+open Attolog.Parser
+
+/// Represents state configuration used to alter the parsing process. Currently used for:
+///
+/// - Stripping single-line comments using specified comment prefix.
+type StateConfig = {
+  comment: option<string>
+} with
+
+  /// Creates a new `StateConfig`.
+  static member initial = { comment = None }
 
 /// Represents the input stream and its current location.
 type State = {
@@ -12,15 +22,24 @@ type State = {
 } with
 
   /// Creates a new `State` from a string.
-  static member fromString str =
+  static member create (str: string) (config: StateConfig) =
     if String.IsNullOrEmpty(str) then
       {
         lines = [||]
         location = Location.initial
       }
     else
-      let separators = [| "\r\n"; "\n" |]
-      let lines = str.Split(separators, StringSplitOptions.None)
+      let lines = str.Split([| "\r\n"; "\n" |], StringSplitOptions.None)
+
+      let lines =
+        match config.comment with
+        | Some comment ->
+          let uncommenter (line: string) =
+            let index = line.IndexOf(comment)
+            if index >= 0 then line.Substring(0, index) else line
+
+          Array.map uncommenter lines
+        | None -> lines
 
       {
         lines = lines
