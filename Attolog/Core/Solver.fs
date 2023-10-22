@@ -17,7 +17,7 @@ type Choice = Database * Env * Clause * int
 let private db: ref<Database> = ref []
 
 /// Add a new assertion at the end of the current database.
-let assertz (a: Assertion) =
+let private assertz (a: Assertion) =
   let rec add =
     function
     | [] -> [ a ]
@@ -26,27 +26,27 @@ let assertz (a: Assertion) =
   db := add !db
 
 /// Renumbers all variable instances occurring in term `term` so that they have level `n`.
-let rec renumberTerm (n: int) (term: Term) : Term =
+let rec private renumberTerm (n: int) (term: Term) : Term =
   match term with
   | Var(var, _) -> Var(var, n)
   | Const(_) as term -> term
   | App(constant, terms) -> App(constant, List.map (renumberTerm n) terms)
 
 /// Renumbers all variable instances occurring in atom so that they have level `n`.
-let renumberAtom (n: int) ((constant, terms): Atom) : Atom =
+let private renumberAtom (n: int) ((constant, terms): Atom) : Atom =
   (constant, List.map (renumberTerm n) terms)
 
 /// Prints the solution of a query (goal) encoded in `env`. It then gives the user the option to search for other
 /// solutions, as described by the list of choice points `choices`, or to abort the currect search.
 ///
 /// TODO: This should be refactored to avoid effects.
-let rec printSolution (choices: list<Choice>) (env: Env) =
+let rec private printSolution (choices: list<Choice>) (env: Env) =
   let isPositiveReply (reply: string) : bool =
     List.contains reply [ "yes"; "y"; "Yes"; "YES"; "" ]
 
   match (Env.toString env, choices) with
-  | ("Yes", _) -> printf "Yes."
-  | (answer, []) -> printf "%s" answer
+  | ("Yes", _) -> printfn "Yes."
+  | (answer, []) -> printfn "%s" answer
   | (answer, choice) ->
     printf "%s. Show more?" answer
 
@@ -55,10 +55,10 @@ let rec printSolution (choices: list<Choice>) (env: Env) =
     | _ -> raise NoSolution
 
 /// Looks for other answers. It accepts a list of choices. It continues the search at the first choice in the list.
-and continueSearch (choices: list<Choice>) =
+and private continueSearch (choices: list<Choice>) =
   match choices with
   | [] -> raise NoSolution
-  | (asrl, env, clauses, n) :: choices -> solve choices asrl env clauses n
+  | (asrl, env, clauses, n) :: choices -> findSolution choices asrl env clauses n
 
 /// Looks for the proof of clause `clause`.
 ///
@@ -68,7 +68,13 @@ and continueSearch (choices: list<Choice>) =
 /// - `n` is the search depth which increases at each level of search.
 ///
 /// When a solution is found, it is printed. The user then decides whether other solutions should be searched for.
-and solve (choices: list<Choice>) (asrl: Database) (env: Env) (clause: Clause) (n: int) =
+and private findSolution
+  (choices: list<Choice>)
+  (asrl: Database)
+  (env: Env)
+  (clause: Clause)
+  (n: int)
+  =
   /// Reduces atom `atom` to subgoals by using the first assertion in the assertion list `asrl` whose conclusions
   /// matches `atom`.
   ///
@@ -96,13 +102,19 @@ and solve (choices: list<Choice>) (asrl: Database) (env: Env) (clause: Clause) (
     | Some(asrl', env', subgoals) ->
       // The atom was reduced to subgoals. Continue search with the subgoals added to the list of goals.
       let choices' = (asrl', env, clause, n) :: choices
-      solve choices' !db env' (subgoals @ clause') (n + 1)
+      findSolution choices' !db env' (subgoals @ clause') (n + 1)
 
 /// Searches for the proof of clause `clause` using the global database `db`.
 ///
 /// TODO: Avoid effects, produce value(s) instead.
-let solveToplevel (clause: Clause) =
+let private findSolutionToplevel (clause: Clause) =
   try
-    solve [] !db Env.empty clause 1
+    findSolution [] !db Env.empty clause 1
   with NoSolution ->
-    printf "No."
+    printfn "No."
+
+let solve (command: Command) =
+  match command with
+  | Query(clause) -> findSolutionToplevel clause
+  | Assert(assertion) -> assertz assertion
+  | _ -> ()
