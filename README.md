@@ -64,13 +64,12 @@ child(kylo, leia).
 % Assertions.
 son(X, Y) :- male(X), child(X, Y).
 daughter(X, Y) :- female(X), child(X, Y).
-
 grandchild(X, Z) :- child(X, Y), child(Y, Z).
 
-% Queries (goals).
-?- son(X, vader).
-?- daughter(X, vader).
-?- grandchild(X, vader).
+% Queries (goals) can't be part of a saved program.
+% ?- son(X, vader).
+% ?- daughter(X, vader).
+% ?- grandchild(X, vader).
 ```
 
 ## TODO
