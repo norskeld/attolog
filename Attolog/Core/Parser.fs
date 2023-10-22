@@ -151,9 +151,9 @@ define pLiteralRef {
 // ---------------------------------------------------------------------------------------------------------------------
 // Helpers:
 
-/// Runs a given parser `p` on input `input` and prints the result to stdout.
-let runAndPrint (p: Parser<_>) (input: string) : unit =
-  let result = run p input
+/// Runs the root parser on input `input` and prints the result to stdout.
+let runAndPrint (input: string) : unit =
+  let result = run pDocument input
   let output = ParserResult<_>.toString result
 
   printfn "%A" output
