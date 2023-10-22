@@ -12,7 +12,6 @@ module private Lexical =
   let tAssert = tag ":-"
   let tQuery = tag "?-"
   let tTrue = tag "true"
-  let tFalse = tag "false"
   let tLeftParen = tag "("
   let tRightParen = tag ")"
   let tComma = tag ","
@@ -31,7 +30,6 @@ let private pDocument, private pDocumentRef =
 let private pExpr, private pExprRef = createForwardedParser<Syntax.Command> ()
 let private pQuery, private pQueryRef = createForwardedParser<Syntax.Command> ()
 let private pAssert, private pAssertRef = createForwardedParser<Syntax.Command> ()
-let private pComment, private pCommentRef = createForwardedParser<Syntax.Command> ()
 let private pAtom, private pAtomRef = createForwardedParser<Syntax.Atom> ()
 let private pClause, private pClauseRef = createForwardedParser<Syntax.Clause> ()
 let private pArgs, private pArgsRef = createForwardedParser<list<Syntax.Term>> ()
@@ -53,8 +51,7 @@ define pDocumentRef {
 // expr:
 //   | query   { $1 }
 //   | assert  { $1 }
-//   | comment { $1 }
-define pExprRef { return! pComment <|> pQuery <|> pAssert <?> "expression" }
+define pExprRef { return! pQuery <|> pAssert <?> "expression" }
 
 // query:
 //   | QUERY clause PERIOD { Query $2 }
@@ -76,19 +73,6 @@ define pAssertRef {
     |>> (fun (atom, clause) -> Syntax.Assert(atom, clause))
 
   return! pAssertionAtom <|> pAssertionClause
-}
-
-// comment:
-//   | COMMENT { Comment $1 }
-define pCommentRef {
-  let pCommentStart = tag "%"
-  let pCommentEnd = char '\n' <?> "newline"
-  let pAny = satisfy ((<>) '\n') "anything but newline"
-
-  return!
-    between pCommentStart (many1 pAny) pCommentEnd
-    |>> (fun chars -> Syntax.Comment((charsToString chars).Trim()))
-    <?> "comment"
 }
 
 // atom:
@@ -116,7 +100,7 @@ define pClauseRef {
     spaced pAtom .>> Lexical.tComma .>>. spaced pClause
     |>> (fun (atom, clause) -> atom :: clause)
 
-  return! pAtomList <|> pAtomSingle <|> pTrue
+  return! pTrue <|> pAtomList <|> pAtomSingle
 }
 
 // args:
@@ -151,19 +135,22 @@ define pLiteralRef {
 // ---------------------------------------------------------------------------------------------------------------------
 // Helpers:
 
+/// State config.
+let config = { comment = Some "%" }
+
 /// Runs the root parser on input `input` and prints the result to stdout.
 let runAndPrint (input: string) : unit =
-  let result = run pDocument input
+  let result = runWithConfig pDocument config input
   let output = ParserResult<_>.toString result
 
-  printfn "%A" output
+  printfn "%O" output
 
 /// Parses a given input `input` into a syntax tree.
 let parse (input: string) : Result<list<Syntax.Command>, string> =
-  match run pDocument input with
+  match runWithConfig pDocument config input with
   | Success(result, _) -> Ok result
   | Failure(_) as result ->
     let output = ParserResult<_>.toString result
-    let message = sprintf "%A" output
+    let message = sprintf "%O" output
 
     Error message

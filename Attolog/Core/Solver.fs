@@ -117,4 +117,3 @@ let solve (command: Command) =
   match command with
   | Query(clause) -> findSolutionToplevel clause
   | Assert(assertion) -> assertz assertion
-  | _ -> ()

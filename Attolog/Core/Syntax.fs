@@ -36,10 +36,6 @@ type Command =
   | Assert of Assertion
   /// Query `?- a`.
   | Query of Clause
-  /// Comment. Technically not a command or expression, I'm just being lazy here.
-  ///
-  /// TODO: Get rid of this, just properly skip comments.
-  | Comment of string
 
 /// Returns the value of variable instance `x` in environment `env`.
 let lookup (env: Env) (var: Variable) : Term =
