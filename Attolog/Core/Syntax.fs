@@ -32,9 +32,9 @@ type Database = list<Assertion>
 
 /// Toplevel commands.
 type Command =
-  /// Assertion `a :- b_1, ..., b_n.` or `a.`.
+  /// Assertion `a :- b1, ..., bn.` or `a.`.
   | Assert of Assertion
-  /// Query `?- a`.
+  /// Query `?- a.`.
   | Query of Clause
 
 /// Returns the value of variable instance `x` in environment `env`.

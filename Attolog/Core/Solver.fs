@@ -113,6 +113,7 @@ let private findSolutionToplevel (clause: Clause) =
   with NoSolution ->
     printfn "No."
 
+/// Executes the given command.
 let solve (command: Command) =
   match command with
   | Query(clause) -> findSolutionToplevel clause
