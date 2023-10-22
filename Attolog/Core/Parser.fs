@@ -60,7 +60,7 @@ define pExprRef { return! pComment <|> pQuery <|> pAssert <?> "expression" }
 //   | QUERY clause PERIOD { Query $2 }
 define pQueryRef {
   return!
-    Lexical.tQuery >>. pClause .>> Lexical.tPeriod
+    spaced Lexical.tQuery >>. pClause .>> spaced Lexical.tPeriod
     |>> (fun (clause) -> Syntax.Query(clause))
 }
 
