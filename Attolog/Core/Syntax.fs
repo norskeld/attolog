@@ -73,7 +73,9 @@ type Term with
     match term with
     | Var(var, _) -> var
     | Const(constant) -> constant
-    | App(constant, terms) -> constant + " " + String.concat " " (List.map Term.toString terms)
+    | Int(constant) -> constant.ToString()
+    | App(constant, terms) ->
+      constant + "(" + (String.concat " " (List.map Term.toString terms)) + ")"
 
 type Env with
 
