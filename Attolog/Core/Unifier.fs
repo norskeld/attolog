@@ -19,6 +19,7 @@ let rec unifyTerms (env: Env) (t1: Term) (t2: Term) : Env =
     else
       { values = (y, t) :: env.values }
   | Const(_), _ -> raise NoUnify
+  | Int(_), _ -> raise NoUnify
   | App(c1, ts1), App(c2, ts2) when c1 = c2 -> unifyLists env ts1 ts2
   | App(_), _ -> raise NoUnify
 

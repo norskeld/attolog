@@ -30,6 +30,7 @@ let rec private renumberTerm (n: int) (term: Term) : Term =
   match term with
   | Var(var, _) -> Var(var, n)
   | Const(_) as term -> term
+  | Int(_) as term -> term
   | App(constant, terms) -> App(constant, List.map (renumberTerm n) terms)
 
 /// Renumbers all variable instances occurring in atom so that they have level `n`.

@@ -12,6 +12,8 @@ type Term =
   | Var of Variable
   /// Constant `a`, `b`, `c`, ...
   | Const of Constant
+  /// Constant integer.
+  | Int of int
   /// Compound term `f(t1, ..., tn)`
   | App of Constant * list<Term>
 
@@ -53,6 +55,7 @@ let rec substitute (env: Env) (term: Term) : Term =
 
     if term = found then found else substitute env found
   | Const(_) as term -> term
+  | Int(_) as term -> term
   | App(constant, terms) -> App(constant, List.map (substitute env) terms)
 
 /// Checks if variable instance `x` appears in term `term`.
@@ -60,6 +63,7 @@ let rec occurs (x: Variable) (term: Term) : bool =
   match term with
   | Var(var) -> var = x
   | Const(_) -> false
+  | Int(_) -> false
   | App(_, terms) -> List.exists (occurs x) terms
 
 type Term with

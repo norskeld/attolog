@@ -128,6 +128,8 @@ define pArgsRef {
 //   | VAR                      { Var ($1, 0) }
 //   | CONST LPAREN args RPAREN { App ($1, $3) }
 define pLiteralRef {
+  let pInt = int |>> Syntax.Int <?> "integer"
+
   let pConst = Lexical.pConstant |>> Syntax.Const <?> "constant"
 
   let pVar = Lexical.pVariable |>> (fun var -> Syntax.Var(var, 0)) <?> "variable"
@@ -137,7 +139,7 @@ define pLiteralRef {
     |>> (fun (constant, args) -> Syntax.App(constant, args))
     <?> "application"
 
-  return! pApp <|> pConst <|> pVar
+  return! pApp <|> pConst <|> pVar <|> pInt
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
