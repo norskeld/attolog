@@ -47,7 +47,7 @@ The language currently consists of:
 - **Assertions**. Example: `son(X, Y) :- male(X), child(X, Y).`
 - **Queries**. Example: `?- child(X, vader).`
 
-Program example:
+Sample program:
 
 ```prolog
 % Persons.
@@ -72,8 +72,23 @@ grandchild(X, Z) :- child(X, Y), child(Y, Z).
 % ?- grandchild(X, vader).
 ```
 
+Peano numbers (using terms to represent unary numbers, e.g. `0`, `s(0)`, `s(s(0))`, `s(s(s(0)))`, etc.):
+
+```prolog
+add(0, N, N).
+add(s(N), M, s(R)) :- add(N, M, R).
+
+% ?- add(s(0), s(0), X).
+% X = s(s(0))
+
+% ?- add(s(0), X, s(s(0))).
+% X = s(0)
+```
+
+
 ## TODO
 
+- [ ] Add program loading/saving.
 - [ ] Get rid of exceptions, embrace errors as values.
 - [ ] Refactor solver to produce values instead of effects (direct printing, reading input, etc).
 
