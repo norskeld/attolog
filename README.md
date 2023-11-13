@@ -8,7 +8,7 @@ This is mostly a learning project to know more about **F#** and **Prolog**.
 
 The implementation is rather basic and therefore limited. It **does not** contain cuts, arithmetic, lists, equality and so on — only basic [Horn clauses][horn-clause].
 
-### CLI
+## CLI
 
 Available options:
 
