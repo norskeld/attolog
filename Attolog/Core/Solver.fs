@@ -17,7 +17,7 @@ type Choice = Database * Env * Clause * int
 let private db: ref<Database> = ref []
 
 /// Add a new assertion at the end of the current database.
-let private assertz (a: Assertion) =
+let private assertz (a: Assertion) : unit =
   let rec add =
     function
     | [] -> [ a ]
@@ -41,7 +41,7 @@ let private renumberAtom (n: int) ((constant, terms): Atom) : Atom =
 /// solutions, as described by the list of choice points `choices`, or to abort the currect search.
 ///
 /// TODO: This should be refactored to avoid effects.
-let rec private printSolution (choices: list<Choice>) (env: Env) =
+let rec private printSolution (choices: list<Choice>) (env: Env) : unit =
   let isPositiveReply (reply: string) : bool =
     List.contains reply [ "yes"; "y"; "Yes"; "YES"; "" ]
 
@@ -56,7 +56,7 @@ let rec private printSolution (choices: list<Choice>) (env: Env) =
     | _ -> raise NoSolution
 
 /// Looks for other answers. It accepts a list of choices. It continues the search at the first choice in the list.
-and private continueSearch (choices: list<Choice>) =
+and private continueSearch (choices: list<Choice>) : unit =
   match choices with
   | [] -> raise NoSolution
   | (asrl, env, clauses, n) :: choices -> findSolution choices asrl env clauses n
@@ -75,12 +75,12 @@ and private findSolution
   (env: Env)
   (clause: Clause)
   (n: int)
-  =
+  : unit =
   /// Reduces atom `atom` to subgoals by using the first assertion in the assertion list `asrl` whose conclusions
   /// matches `atom`.
   ///
   /// Returns `None` if the atom can't be reduced.
-  let rec reduceAtom (atom: Atom) (asrl: Database) =
+  let rec reduceAtom (atom: Atom) (asrl: Database) : option<list<Assertion> * Env * list<Atom>> =
     match asrl with
     | [] -> None
     | (atom', lst) :: asrl' ->
@@ -108,14 +108,14 @@ and private findSolution
 /// Searches for the proof of clause `clause` using the global database `db`.
 ///
 /// TODO: Avoid effects, produce value(s) instead.
-let private findSolutionToplevel (clause: Clause) =
+let private findSolutionToplevel (clause: Clause) : unit =
   try
     findSolution [] !db Env.empty clause 1
   with NoSolution ->
     printfn "No."
 
 /// Executes the given command.
-let solve (command: Command) =
+let solve (command: Command) : unit =
   match command with
   | Query(clause) -> findSolutionToplevel clause
   | Assert(assertion) -> assertz assertion

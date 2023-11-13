@@ -7,7 +7,7 @@ open Attolog.Parser
 
 module private Lexical =
   /// Collects a list of chars into a string.
-  let collect (first, rest) = charsToString (first :: rest)
+  let private collect (first, rest) = charsToString (first :: rest)
 
   let tAssert = tag ":-"
   let tQuery = tag "?-"
