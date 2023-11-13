@@ -8,12 +8,24 @@ This is mostly a learning project to know more about **F#** and **Prolog**.
 
 The implementation is rather basic and therefore limited. It **does not** contain cuts, arithmetic, lists, equality and so on — only basic [Horn clauses][horn-clause].
 
+### CLI
+
+Available options:
+
+- `-f`, `--file` A file to load before starting a REPL.
+
 ## REPL
 
 Simply run the project:
 
 ```sh
-dotnet run --project Attolog
+$ dotnet run --project Attolog
+```
+
+With arguments:
+
+```sh
+$ dotnet run --project Attolog -- -f examples/sw.pl
 ```
 
 ### rlwrap
@@ -21,7 +33,13 @@ dotnet run --project Attolog
 REPL can also be used with [rlwrap]:
 
 ```sh
-rlwrap -a -N -t dumb dotnet run --project Attolog
+$ rlwrap -a -N -t dumb dotnet run --project Attolog
+```
+
+With arguments:
+
+```sh
+$ rlwrap -a -N -t dumb dotnet run --project Attolog -- -f examples/sw.pl
 ```
 
 ### just
@@ -33,8 +51,14 @@ $ just --list
 
 Available recipes:
     default
-    rl      # Run Attolog with rlwrap for a slightly better experience in REPL.
-    run     # Run Attolog with the default REPL.
+    rl *args=''  # Run Attolog with rlwrap for a slightly better experience in REPL.
+    run *args='' # Run Attolog with the default REPL.
+```
+
+Arguments can be passed as well:
+
+```sh
+$ just run -f examples/sw.pl
 ```
 
 ## Language
@@ -85,10 +109,8 @@ add(s(N), M, s(R)) :- add(N, M, R).
 % X = s(0)
 ```
 
-
 ## TODO
 
-- [ ] Add program loading/saving.
 - [ ] Get rid of exceptions, embrace errors as values.
 - [ ] Refactor solver to produce values instead of effects (direct printing, reading input, etc).
 
