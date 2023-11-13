@@ -114,8 +114,14 @@ let private findSolutionToplevel (clause: Clause) : unit =
   with NoSolution ->
     printfn "No."
 
-/// Executes the given command.
+/// Evaluates (solves) the given command.
 let solve (command: Command) : unit =
   match command with
   | Query(clause) -> findSolutionToplevel clause
   | Assert(assertion) -> assertz assertion
+
+/// Evaluates assertions without touching queries, effectively used for populating the database.
+let load (command: Command) : unit =
+  match command with
+  | Assert(assertion) -> assertz assertion
+  | _ -> ()

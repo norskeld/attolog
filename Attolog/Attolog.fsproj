@@ -18,6 +18,7 @@
     <Compile Include="Core/Unifier.fs" />
     <Compile Include="Core/Solver.fs" />
 
+    <Compile Include="Cli.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>
 
