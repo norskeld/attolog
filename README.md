@@ -6,7 +6,8 @@ Minimal [Prolog] interpreter.
 
 This is mostly a learning project to know more about **F#** and **Prolog**.
 
-The implementation is rather basic and therefore limited. It **does not** contain cuts, arithmetic, lists, equality and so on — only basic [Horn clauses][horn-clause].
+- [x] The implementation is rather basic. It **does not** contain cuts, arithmetic, lists, equality and so on — only basic [Horn clauses][horn-clause].
+- [x] Besides the interpreter, there's a simple [hand-rolled parser combinator library](Attolog/Parser/Library.fs). Zero dependencies, yay!
 
 ## CLI
 
@@ -65,11 +66,11 @@ $ just run -f examples/sw.pl
 
 The language currently consists of:
 
-- **Constants**. Example: `x`, `y`, `constant`
-- **Variables**. Example: `X`, `Y`, `Variable`
-- **Clauses**. Example: `son(abel, adam)`, `less(X, plus(X, one))`
-- **Assertions**. Example: `son(X, Y) :- male(X), child(X, Y).`
-- **Queries**. Example: `?- child(X, vader).`
+- **Constants**: `x`, `y`, `constant`
+- **Variables**: `X`, `Y`, `Variable`
+- **Clauses**: `son(abel, adam)`, `less(X, plus(X, one))`
+- **Assertions**: `son(X, Y) :- male(X), child(X, Y).`
+- **Queries**: `?- child(X, vader).`
 
 Sample program:
 
