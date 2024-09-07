@@ -9,6 +9,10 @@ This is mostly a learning project to know more about **F#** and **Prolog**.
 - [x] The implementation is rather basic. It **does not** contain cuts, arithmetic, lists, equality and so on — only basic [Horn clauses][horn-clause].
 - [x] Besides the interpreter, there's a simple [hand-rolled parser combinator library](Attolog/Parser/Library.fs). Zero dependencies, yay!
 
+## Prerequisites
+
+You pretty much need only [.NET SDK 8.0](https://dotnet.microsoft.com/en-us/download).
+
 ## CLI
 
 Available options:
